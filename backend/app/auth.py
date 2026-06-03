@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 from fastapi import Depends, HTTPException, Query, Request, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 
 from .config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY
@@ -99,8 +99,8 @@ def public_user(user: Dict[str, Any]) -> Dict[str, Any]:
 
 async def current_user(
     request: Request,
-    credentials: HTTPAuthorizationCredentials | None = Depends(security),
-    access_token: str | None = Query(default=None),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    access_token: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
     token = access_token
     if credentials and credentials.scheme.lower() == "bearer":

@@ -30,6 +30,14 @@ export default function QuickPeekPage({ user }: { user: User }) {
   const [folderBusy, setFolderBusy] = useState(false);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<{ code: string; file: FileItem } | null>(null);
+  const [columns, setColumns] = useState(() => {
+    const saved = localStorage.getItem('quickpeek_columns');
+    return saved ? parseInt(saved, 10) : 3;
+  });
+  const [cardHeight, setCardHeight] = useState(() => {
+    const saved = localStorage.getItem('quickpeek_card_height');
+    return saved ? parseInt(saved, 10) : 350;
+  });
 
   const codes = useMemo(() => normalizeCodes(codesText), [codesText]);
   const found = results.reduce((sum, r) => sum + r.matches_count, 0);
@@ -182,9 +190,43 @@ export default function QuickPeekPage({ user }: { user: User }) {
         {error && <div className="error-box">{error}</div>}
       </section>
 
-      <section className="results-grid">
+      {results.length > 0 && (
+        <div className="results-controls">
+          <span className="results-count">{results.length} result{results.length !== 1 ? 's' : ''}</span>
+          <div className="columns-control">
+            <span>Cols:</span>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                className={`col-btn ${columns === n ? 'active' : ''}`}
+                onClick={() => { setColumns(n); localStorage.setItem('quickpeek_columns', String(n)); }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <div className="height-control">
+            <span>Height:</span>
+            <input
+              type="range"
+              min="200"
+              max="600"
+              step="10"
+              value={cardHeight}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setCardHeight(v);
+                localStorage.setItem('quickpeek_card_height', String(v));
+              }}
+            />
+            <span className="height-val">{cardHeight}px</span>
+          </div>
+        </div>
+      )}
+
+      <section className="results-grid" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
         {results.map((r) => (
-          <PreviewCard key={r.code} result={r} format={format} onOpen={(file) => setSelected({ code: r.code, file })} />
+          <PreviewCard key={r.code} result={r} format={format} onOpen={(file) => setSelected({ code: r.code, file })} previewHeight={cardHeight} />
         ))}
       </section>
 

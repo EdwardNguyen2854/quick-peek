@@ -8,7 +8,7 @@ function sizeLabel(bytes: number) {
   return `${bytes} B`;
 }
 
-export default function PreviewCard({ result, format, onOpen }: { result: SearchResult; format: Format; onOpen: (file: FileItem) => void }) {
+export default function PreviewCard({ result, format, onOpen, previewHeight }: { result: SearchResult; format: Format; onOpen: (file: FileItem) => void; previewHeight?: number }) {
   const file = result.files[0];
   const missing = result.status === 'not_found';
   const multiple = result.status === 'multiple_matches';
@@ -23,7 +23,7 @@ export default function PreviewCard({ result, format, onOpen }: { result: Search
         {missing ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
       </header>
 
-      <div className="preview-frame">
+      <div className="preview-frame" style={previewHeight ? { minHeight: previewHeight } : undefined}>
         {file ? (
           (file.preview_kind === 'glb' || file.preview_kind === 'obj') ? (
             <div className="step-mini">
