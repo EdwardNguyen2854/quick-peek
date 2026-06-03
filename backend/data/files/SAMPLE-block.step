@@ -1,0 +1,9 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('Quick Peek sample STEP placeholder'),'2;1');
+FILE_NAME('SAMPLE-block.step','2026-06-03T00:00:00',('Quick Peek'),('Quick Peek'),'','','');
+FILE_SCHEMA(('AUTOMOTIVE_DESIGN'));
+ENDSEC;
+DATA;
+ENDSEC;
+END-ISO-10303-21;

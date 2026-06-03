@@ -1,0 +1,8 @@
+backend/.venv/
+frontend/node_modules/
+backend/data/*.sqlite3
+backend/data/*.sqlite3-*
+backend/cache/previews/*
+!.gitkeep
+.env
+.DS_Store
