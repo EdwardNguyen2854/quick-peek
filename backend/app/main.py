@@ -1,7 +1,22 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# ── frozen-exe support ──────────────────────────────────────────
+def _resource_path(relative_path: str) -> Path:
+    """Return path to a bundled resource whether running as .py or frozen .exe."""
+    if getattr(sys, 'frozen', False):
+        # PyInstaller sets _MEIPASS to the tmp extracted folder.
+        base = Path(sys._MEIPASS)
+    else:
+        base = Path(__file__).resolve().parents[2]
+    return base / relative_path
+
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .auth import ensure_admin_user
 from .config import ADMIN_PASSWORD, ADMIN_PERMISSIONS, ADMIN_USERNAME
@@ -20,7 +35,6 @@ def create_app() -> FastAPI:
         pass
 
     app = FastAPI(title="Quick Peek API", version="0.1.0")
-    # LAN-friendly CORS for MVP. Auth uses Bearer tokens, not cookies, so credentials are not needed.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -37,6 +51,11 @@ def create_app() -> FastAPI:
     @app.get("/api/health")
     def health():
         return {"ok": True, "name": "Quick Peek"}
+
+    # ── embedded frontend (only present when bundled with PyInstaller) ──
+    static_path = _resource_path("app" / "static")
+    if static_path.exists():
+        app.mount("/", StaticFiles(directory=str(static_path), html=True), name="frontend")
 
     return app
 

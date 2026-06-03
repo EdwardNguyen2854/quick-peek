@@ -6,11 +6,11 @@ import PreviewCard from '../components/PreviewCard';
 import ViewerModal from '../components/ViewerModal';
 import FolderPickerModal from '../components/FolderPickerModal';
 
-const formats: { id: Format; label: string; sub: string; permission: string }[] = [
-  { id: 'step', label: 'STEP', sub: '.stp / .step', permission: 'view_step' },
-  { id: 'pdf', label: 'PDF', sub: '.pdf', permission: 'view_pdf' },
-  { id: 'dxf', label: 'DXF', sub: '.dxf', permission: 'view_dxf' },
-  { id: 'obj', label: 'OBJ', sub: '.obj', permission: 'view_obj' }
+const formats: { id: Format; label: string; exts: string; permission: string }[] = [
+  { id: 'step', label: 'STEP', exts: '.stp .step', permission: 'view_step' },
+  { id: 'pdf', label: 'PDF', exts: '.pdf', permission: 'view_pdf' },
+  { id: 'dxf', label: 'DXF', exts: '.dxf', permission: 'view_dxf' },
+  { id: 'obj', label: 'OBJ', exts: '.obj', permission: 'view_obj' }
 ];
 
 function canView(user: User, permission: string) {
@@ -120,7 +120,7 @@ export default function QuickPeekPage({ user }: { user: User }) {
                 onClick={() => setFormat(f.id)}
               >
                 <strong>{f.label}</strong>
-                <span>{disabled ? 'No permission' : f.sub}</span>
+                <span>{disabled ? 'No permission' : f.exts}</span>
               </button>
             );
           })}

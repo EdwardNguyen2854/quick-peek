@@ -38,10 +38,10 @@ h2 { font-size: 20px; margin: 0 0 16px; letter-spacing: -0.02em; }
 .stack { display: grid; gap: 22px; }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 22px; box-shadow: var(--shadow); }
 .hero-panel { display: grid; gap: 22px; }
-.format-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.format-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; text-align: left; transition: .16s ease; }
-.format-card strong { display: block; font-size: 15px; letter-spacing: -0.02em; }
-.format-card span { color: var(--muted); font-size: 12px; }
+.format-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.format-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; text-align: left; transition: .16s ease; }
+.format-card strong { display: block; font-size: 14px; letter-spacing: -0.02em; }
+.format-card span { color: var(--muted); font-size: 11px; }
 .format-card.selected { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
 .format-card:hover:not(:disabled) { transform: translateY(-1px); }
 .input-grid { display: grid; grid-template-columns: minmax(320px, 1fr) 280px; gap: 20px; }
@@ -165,6 +165,27 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .folder-control-row, .folder-save-row, .folder-path-row, .folder-body { grid-template-columns: 1fr; }
   .folder-roots { border-right: 0; border-bottom: 1px solid var(--line); max-height: 180px; }
 }
+
+.info-feature { display: flex; gap: 14px; align-items: flex-start; }
+.info-icon { width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; color: var(--muted); }
+.spec-grid { display: grid; gap: 1px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.spec-row { display: flex; justify-content: space-between; gap: 12px; padding: 11px 14px; background: var(--soft); font-size: 13px; }
+.spec-row span { color: var(--muted); }
+.spec-row code { font-size: 12px; background: none; border: 0; padding: 0; }
+.format-table { display: grid; gap: 10px; }
+.format-row-item { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.ext-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.ext-tag { background: var(--soft); border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; font-size: 12px; font-weight: 600; }
+.roadmap-list { display: grid; gap: 18px; }
+.roadmap-phase { border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; }
+.roadmap-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.roadmap-header h3 { margin: 0; font-size: 15px; }
+.roadmap-phase ul { margin: 0 0 0 18px; display: grid; gap: 6px; }
+.roadmap-phase li { font-size: 13px; color: var(--muted); }
+.roadmap-badge { font-size: 11px; padding: 4px 10px; border-radius: 999px; font-weight: 600; }
+.badge-done { background: #dcfce7; color: #15803d; }
+.badge-progress { background: #fef9c3; color: #854d0e; }
+.badge-planned { background: var(--soft); color: var(--muted); }
 
 /* Vector DXF viewer: updates SVG viewBox instead of scaling a rasterized image. */
 .dxf-vector-viewer { width: 100%; height: 100%; position: relative; overflow: hidden; background: #fff; }
