@@ -105,8 +105,12 @@ input, select { border: 1px solid var(--line); border-radius: 12px; padding: 10p
 .viewer-message { color: var(--muted); font-size: 13px; }
 .modal-actions { display: flex; gap: 10px; align-items: center; }
 .viewer-body { flex: 1; min-height: 0; position: relative; background: #fff; }
-.pdf-frame, .step-viewer, .panzoom { width: 100%; height: 100%; border: 0; }
+.pdf-frame, .step-viewer, .panzoom, .html-frame { width: 100%; height: 100%; border: 0; }
 .step-viewer { position: relative; }
+.markdown-viewer, .text-viewer { width: 100%; height: 100%; overflow: auto; padding: 20px; background: #fff; box-sizing: border-box; }
+.markdown-viewer { line-height: 1.6; }
+.text-viewer { margin: 0; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
+.markdown-viewer.loading, .text-viewer.loading { display: grid; place-items: center; color: var(--muted); }
 .viewer-hint, .panzoom-toolbar { position: absolute; left: 16px; bottom: 16px; z-index: 2; background: rgba(255,255,255,.88); border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; color: var(--muted); font-size: 12px; }
 .panzoom { overflow: hidden; position: relative; display: grid; place-items: center; touch-action: none; cursor: grab; }
 .panzoom img { max-width: 82%; max-height: 82%; transition: transform .05s linear; user-select: none; }
@@ -191,3 +195,18 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 .dxf-vector-viewer { width: 100%; height: 100%; position: relative; overflow: hidden; background: #fff; }
 .dxf-vector-viewer svg { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; user-select: none; }
 .dxf-vector-viewer svg:active { cursor: grabbing; }
+
+/* Version badge in bottom-right */
+.version-badge {
+  position: fixed;
+  bottom: 16px;
+  right: 20px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--muted);
+  z-index: 10;
+  font-weight: 500;
+}

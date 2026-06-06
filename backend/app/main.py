@@ -53,7 +53,7 @@ def create_app() -> FastAPI:
         return {"ok": True, "name": "Quick Peek"}
 
     # ── embedded frontend (only present when bundled with PyInstaller) ──
-    static_path = _resource_path("app" / "static")
+    static_path = _resource_path("app/static")
     if static_path.exists():
         app.mount("/", StaticFiles(directory=str(static_path), html=True), name="frontend")
 

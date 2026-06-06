@@ -6,7 +6,13 @@ export type Permission =
   | 'view_obj'
   | 'view_dashboard'
   | 'manage_users'
-  | 'download_files';
+  | 'download_files'
+  | 'view_doc'
+  | 'view_xls'
+  | 'view_ppt'
+  | 'view_md'
+  | 'view_txt'
+  | 'view_html';
 
 export type User = {
   id: number;
@@ -17,7 +23,7 @@ export type User = {
   last_login_at?: string | null;
 };
 
-export type Format = 'step' | 'pdf' | 'dxf' | 'obj';
+export type Format = 'step' | 'pdf' | 'dxf' | 'obj' | 'doc' | 'xls' | 'ppt' | 'md' | 'txt' | 'html';
 
 export type FileItem = {
   file_id: number;
@@ -25,7 +31,7 @@ export type FileItem = {
   extension: string;
   size_bytes: number;
   modified_at: number;
-  preview_kind: 'pdf' | 'svg' | 'glb' | 'step' | 'obj' | 'unknown';
+  preview_kind: 'pdf' | 'svg' | 'glb' | 'step' | 'obj' | 'unknown' | 'html' | 'txt' | 'md' | 'doc' | 'xls' | 'ppt';
   preview_ready: boolean;
   message?: string | null;
   preview_url: string;

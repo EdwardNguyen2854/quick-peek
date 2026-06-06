@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, BookOpen, LogOut, Map, Search, Settings, Shield, UserRound } from 'lucide-react';
+import { BarChart3, BookOpen, LogOut, Map, Search, Settings, Shield, Tag, UserRound } from 'lucide-react';
 import { api, setToken } from './api';
 import type { User } from './types';
+import { VERSION } from './version';
 import LoginPage from './pages/LoginPage';
 import QuickPeekPage from './pages/QuickPeekPage';
 import AdminPage from './pages/AdminPage';
 import DashboardPage from './pages/DashboardPage';
 import InfoPage from './pages/InfoPage';
 import RoadmapPage from './pages/RoadmapPage';
+import ReleasesPage from './pages/ReleasesPage';
 
-export type Page = 'peek' | 'admin' | 'dashboard' | 'info' | 'roadmap';
+export type Page = 'peek' | 'admin' | 'dashboard' | 'info' | 'roadmap' | 'releases';
 
 function has(user: User | null, perm: string): boolean {
   return !!user && (user.role === 'admin' || user.permissions.includes(perm as never));
@@ -32,6 +34,7 @@ export default function App() {
     if (page === 'dashboard') return 'Dashboard';
     if (page === 'info') return 'Info';
     if (page === 'roadmap') return 'Roadmap';
+    if (page === 'releases') return 'Releases';
     return 'Quick Peek';
   }, [page]);
 
@@ -59,6 +62,9 @@ export default function App() {
           <button className={page === 'roadmap' ? 'active' : ''} onClick={() => setPage('roadmap')}>
             <Map size={18} /> Roadmap
           </button>
+          <button className={page === 'releases' ? 'active' : ''} onClick={() => setPage('releases')}>
+            <Tag size={18} /> Releases
+          </button>
           {has(user, 'view_dashboard') && (
             <button className={page === 'dashboard' ? 'active' : ''} onClick={() => setPage('dashboard')}>
               <BarChart3 size={18} /> Dashboard
@@ -75,6 +81,7 @@ export default function App() {
           <button className="ghost" onClick={() => { setToken(null); setUser(null); }}>
             <LogOut size={16} /> Log out
           </button>
+          <div className="version-badge">v{VERSION}</div>
         </div>
       </aside>
 
@@ -91,6 +98,7 @@ export default function App() {
         {page === 'dashboard' && <DashboardPage />}
         {page === 'info' && <InfoPage />}
         {page === 'roadmap' && <RoadmapPage />}
+        {page === 'releases' && <ReleasesPage />}
       </main>
     </div>
   );

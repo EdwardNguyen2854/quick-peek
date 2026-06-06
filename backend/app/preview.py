@@ -6,7 +6,9 @@ import subprocess
 from pathlib import Path
 from typing import Dict
 
-from .config import PREVIEW_DIR, STEP_CONVERTER_CMD
+from .config import MAX_CONVERT_SIZE_MB, PREVIEW_DIR, STEP_CONVERTER_CMD
+from .converters.markdown_to_html import markdown_to_html
+from .converters.office_to_html import office_to_html
 from .dxf_preview import dxf_to_svg
 
 
@@ -46,4 +48,50 @@ def ensure_preview(file_row: dict, file_format: str) -> Dict[str, str | bool | N
             except Exception as exc:
                 return {"kind": "step", "ready": False, "message": f"STEP found, but preview conversion failed: {exc}", "cache_file": None}
         return {"kind": "step", "ready": False, "message": "STEP file found. Configure QUICKPEEK_STEP_CONVERTER_CMD to generate browser 3D GLB previews.", "cache_file": None}
+    if file_format in {"doc", "xls", "ppt"}:
+        # Check file size before conversion
+        try:
+            size_mb = path.stat().st_size / (1024 * 1024)
+            if size_mb > MAX_CONVERT_SIZE_MB:
+                return {"kind": file_format, "ready": False, "message": f"File too large ({size_mb:.1f} MB > {MAX_CONVERT_SIZE_MB} MB limit).", "cache_file": None}
+        except Exception as exc:
+            return {"kind": file_format, "ready": False, "message": f"Could not check file size: {exc}", "cache_file": None}
+
+        out = PREVIEW_DIR / f"{key}.html"
+        if out.exists():
+            return {"kind": "html", "ready": True, "message": None, "cache_file": str(out)}
+        try:
+            if office_to_html(path, out):
+                return {"kind": "html", "ready": True, "message": None, "cache_file": str(out)}
+            return {"kind": file_format, "ready": False, "message": "Office document preview conversion failed. Ensure python-docx, openpyxl, and python-pptx are installed.", "cache_file": None}
+        except Exception as exc:
+            return {"kind": file_format, "ready": False, "message": f"Office conversion failed: {exc}", "cache_file": None}
+    if file_format == "md":
+        # Check file size before conversion
+        try:
+            size_mb = path.stat().st_size / (1024 * 1024)
+            if size_mb > MAX_CONVERT_SIZE_MB:
+                return {"kind": "md", "ready": False, "message": f"File too large ({size_mb:.1f} MB > {MAX_CONVERT_SIZE_MB} MB limit).", "cache_file": None}
+        except Exception as exc:
+            return {"kind": "md", "ready": False, "message": f"Could not check file size: {exc}", "cache_file": None}
+        out = PREVIEW_DIR / f"{key}.html"
+        if out.exists():
+            return {"kind": "html", "ready": True, "message": None, "cache_file": str(out)}
+        try:
+            if markdown_to_html(path, out):
+                return {"kind": "html", "ready": True, "message": None, "cache_file": str(out)}
+            return {"kind": "md", "ready": False, "message": "Markdown to HTML conversion failed.", "cache_file": None}
+        except Exception as exc:
+            return {"kind": "md", "ready": False, "message": f"Markdown conversion failed: {exc}", "cache_file": None}
+    if file_format == "txt":
+        # Check file size before returning text content
+        try:
+            size_mb = path.stat().st_size / (1024 * 1024)
+            if size_mb > MAX_CONVERT_SIZE_MB:
+                return {"kind": "txt", "ready": False, "message": f"File too large ({size_mb:.1f} MB > {MAX_CONVERT_SIZE_MB} MB limit).", "cache_file": None}
+        except Exception as exc:
+            return {"kind": "txt", "ready": False, "message": f"Could not check file size: {exc}", "cache_file": None}
+        return {"kind": "txt", "ready": True, "message": None, "cache_file": None}
+    if file_format == "html":
+        return {"kind": "html", "ready": True, "message": None, "cache_file": None}
     return {"kind": "unknown", "ready": False, "message": "Unsupported format", "cache_file": None}

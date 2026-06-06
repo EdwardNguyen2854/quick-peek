@@ -1,6 +1,6 @@
 import type { FolderBrowseResponse, FolderPreset, Format } from './types';
 
-const defaultApiBase = typeof window !== 'undefined' ? `http://${window.location.hostname}:8000` : 'http://127.0.0.1:8000';
+const defaultApiBase = typeof window !== 'undefined' ? `http://${window.location.hostname}:5175` : 'http://127.0.0.1:5175';
 export const API_BASE = import.meta.env.VITE_API_BASE ?? defaultApiBase;
 
 export function getToken(): string | null {

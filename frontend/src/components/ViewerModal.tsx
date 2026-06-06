@@ -6,6 +6,10 @@ import StepViewer from './viewers/StepViewer';
 import PanZoomImage from './viewers/PanZoomImage';
 import DxfVectorViewer from './viewers/DxfVectorViewer';
 import ObjViewer from './viewers/ObjViewer';
+import DocViewer from './viewers/DocViewer';
+import MarkdownViewer from './viewers/MarkdownViewer';
+import TextViewer from './viewers/TextViewer';
+import HtmlViewer from './viewers/HtmlViewer';
 
 export default function ViewerModal({ code, format, file, onClose }: { code: string; format: Format; file: FileItem; onClose: () => void }) {
   useEffect(() => {
@@ -36,6 +40,10 @@ export default function ViewerModal({ code, format, file, onClose }: { code: str
           {format === 'pdf' && <iframe className="pdf-frame" src={pdfViewUrl} title={file.filename} />}
           {format === 'dxf' && <DxfVectorViewer url={previewUrl} label="DXF preview" />}
           {format === 'obj' && <ObjViewer url={previewUrl} />}
+          {(format === 'doc' || format === 'xls' || format === 'ppt') && <DocViewer url={previewUrl} />}
+          {format === 'md' && <MarkdownViewer url={previewUrl} />}
+          {format === 'txt' && <TextViewer url={previewUrl} />}
+          {format === 'html' && <HtmlViewer url={previewUrl} />}
         </div>
       </div>
     </div>

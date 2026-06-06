@@ -20,6 +20,12 @@ FORMAT_PERMISSION = {
     "pdf": "view_pdf",
     "dxf": "view_dxf",
     "obj": "view_obj",
+    "doc": "view_doc",
+    "xls": "view_xls",
+    "ppt": "view_ppt",
+    "md": "view_md",
+    "txt": "view_txt",
+    "html": "view_html",
 }
 
 
@@ -154,6 +160,16 @@ def preview_file(file_id: int, format: str, user=Depends(current_user)):
     if p["kind"] == "obj":
         # OBJ is a mesh format that Three.js can load directly. Keep it inline for the in-app viewer.
         return FileResponse(Path(item["full_path"]), media_type="model/obj")
+    if p["kind"] == "txt":
+        # Serve raw text file with text/plain content type
+        return FileResponse(Path(item["full_path"]), media_type="text/plain; charset=utf-8")
+    if p["kind"] == "html":
+        # Serve from cache if exists, else serve raw file
+        if p.get("cache_file"):
+            cache_path = Path(str(p["cache_file"]))
+            if cache_path.exists():
+                return FileResponse(cache_path, media_type="text/html; charset=utf-8")
+        return FileResponse(Path(item["full_path"]), media_type="text/html; charset=utf-8")
     if p.get("cache_file"):
         cache_path = Path(str(p["cache_file"]))
         if cache_path.exists():

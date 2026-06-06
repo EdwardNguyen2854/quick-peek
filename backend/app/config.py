@@ -48,21 +48,35 @@ MANUAL_SECONDS_PER_FILE = int(_get("QUICKPEEK_MANUAL_SECONDS_PER_FILE", "45"))
 APP_SECONDS_PER_FILE = int(_get("QUICKPEEK_APP_SECONDS_PER_FILE", "8"))
 
 STEP_CONVERTER_CMD = _get("QUICKPEEK_STEP_CONVERTER_CMD", "").strip()
+LIBREOFFICE_CMD = _get("QUICKPEEK_LIBREOFFICE_CMD", "").strip()  # auto-detect if empty
+MAX_CONVERT_SIZE_MB = int(_get("QUICKPEEK_MAX_CONVERT_SIZE_MB", "100"))
 
 SUPPORTED_FORMATS = {
     "step": [".stp", ".step"],
     "pdf": [".pdf"],
     "dxf": [".dxf"],
     "obj": [".obj"],
+    "doc": [".doc", ".docx"],
+    "xls": [".xls", ".xlsx"],
+    "ppt": [".ppt", ".pptx"],
+    "md": [".md"],
+    "txt": [".txt"],
+    "html": [".html", ".htm"],
 }
 
-DEFAULT_USER_PERMISSIONS = ["use_quick_peek", "view_step", "view_pdf", "view_dxf", "view_obj"]
+DEFAULT_USER_PERMISSIONS = ["use_quick_peek", "view_step", "view_pdf", "view_dxf", "view_obj", "view_doc", "view_xls", "view_ppt", "view_md", "view_txt", "view_html"]
 ADMIN_PERMISSIONS = [
     "use_quick_peek",
     "view_step",
     "view_pdf",
     "view_dxf",
     "view_obj",
+    "view_doc",
+    "view_xls",
+    "view_ppt",
+    "view_md",
+    "view_txt",
+    "view_html",
     "view_dashboard",
     "manage_users",
     "download_files",

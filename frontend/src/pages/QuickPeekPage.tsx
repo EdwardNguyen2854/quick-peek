@@ -10,7 +10,13 @@ const formats: { id: Format; label: string; exts: string; permission: string }[]
   { id: 'step', label: 'STEP', exts: '.stp .step', permission: 'view_step' },
   { id: 'pdf', label: 'PDF', exts: '.pdf', permission: 'view_pdf' },
   { id: 'dxf', label: 'DXF', exts: '.dxf', permission: 'view_dxf' },
-  { id: 'obj', label: 'OBJ', exts: '.obj', permission: 'view_obj' }
+  { id: 'obj', label: 'OBJ', exts: '.obj', permission: 'view_obj' },
+  { id: 'doc', label: 'Word', exts: '.doc .docx', permission: 'view_doc' },
+  { id: 'xls', label: 'Excel', exts: '.xls .xlsx', permission: 'view_xls' },
+  { id: 'ppt', label: 'PowerPoint', exts: '.ppt .pptx', permission: 'view_ppt' },
+  { id: 'md', label: 'Markdown', exts: '.md', permission: 'view_md' },
+  { id: 'txt', label: 'Text', exts: '.txt', permission: 'view_txt' },
+  { id: 'html', label: 'HTML', exts: '.html .htm', permission: 'view_html' }
 ];
 
 function canView(user: User, permission: string) {
