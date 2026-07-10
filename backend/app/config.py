@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 try:
     from dotenv import load_dotenv  # type: ignore
@@ -81,3 +82,35 @@ ADMIN_PERMISSIONS = [
     "manage_users",
     "download_files",
 ]
+
+# ── LDAP ────────────────────────────────────────────────────────────────────
+LDAP_URL: Optional[str] = _get("QUICKPEEK_LDAP_URL", "") or None
+LDAP_BIND_DN_TEMPLATE: str = _get("QUICKPEEK_LDAP_BIND_DN_TEMPLATE", "{username}@domain.local")
+LDAP_USER_SEARCH_BASE: str = _get("QUICKPEEK_LDAP_USER_SEARCH_BASE", "DC=domain,DC=local")
+LDAP_USER_SEARCH_FILTER: str = _get("QUICKPEEK_LDAP_USER_SEARCH_FILTER", "(sAMAccountName={username})")
+LDAP_GROUP_BASE: str = _get("QUICKPEEK_LDAP_GROUP_BASE", "DC=domain,DC=local")
+LDAP_USE_SSL: bool = _get("QUICKPEEK_LDAP_USE_SSL", "true").lower() in ("1", "true", "yes")
+LDAP_BIND_CACHE_TTL: int = int(_get("QUICKPEEK_LDAP_BIND_CACHE_TTL", "60"))
+LDAP_GROUP_PERMISSIONS: str = _get("QUICKPEEK_LDAP_GROUP_PERMISSIONS", "{}")
+
+# ── History / Retention ─────────────────────────────────────────────────────
+HISTORY_RETENTION_DAYS: int = int(_get("QUICKPEEK_HISTORY_RETENTION_DAYS", "90"))
+
+# ── Folder Permissions ──────────────────────────────────────────────────────
+FOLDER_DEFAULT_ALLOW: bool = _get("QUICKPEEK_FOLDER_DEFAULT_ALLOW", "true").lower() in ("1", "true", "yes")
+
+# ── Tags ────────────────────────────────────────────────────────────────────
+MAX_TAGS_PER_FILE: int = int(_get("QUICKPEEK_MAX_TAGS_PER_FILE", "50"))
+MAX_DISTINCT_TAGS: int = int(_get("QUICKPEEK_MAX_DISTINCT_TAGS", "1000"))
+
+# ── API Keys ────────────────────────────────────────────────────────────────
+API_KEY_DEFAULT_TTL_DAYS: int = int(_get("QUICKPEEK_API_KEY_DEFAULT_TTL_DAYS", "365"))
+
+# ── Rate Limiting ────────────────────────────────────────────────────────────
+LOGIN_RATE_LIMIT_PER_MIN: int = int(_get("QUICKPEEK_LOGIN_RATE_LIMIT_PER_MIN", "5"))
+
+# ── LDAP Group Permissions Map (parsed JSON) ────────────────────────────────
+try:
+    LDAP_GROUP_PERMISSIONS_MAP: dict = json.loads(LDAP_GROUP_PERMISSIONS)
+except (json.JSONDecodeError, TypeError):
+    LDAP_GROUP_PERMISSIONS_MAP: dict = {}

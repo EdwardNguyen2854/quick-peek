@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import fnmatch
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 
 from ..auth import current_user, require_permission
-from ..config import APP_SECONDS_PER_FILE, MANUAL_SECONDS_PER_FILE
+from ..config import APP_SECONDS_PER_FILE, FOLDER_DEFAULT_ALLOW, MANUAL_SECONDS_PER_FILE
 from ..db import get_conn, json_dumps, row_to_dict, utc_now
 from ..file_index import index_folder, search_index
 from ..preview import ensure_preview
@@ -112,7 +113,7 @@ def log_open(payload: OpenLogRequest, user=Depends(require_permission("use_quick
     return {"ok": True}
 
 
-def _media_type_for_extension(extension: str) -> str | None:
+def _media_type_for_extension(extension: str) -> Optional[str]:
     ext = extension.lower().lstrip(".")
     if ext == "pdf":
         return "application/pdf"
@@ -125,6 +126,92 @@ def _media_type_for_extension(extension: str) -> str | None:
     return None
 
 
+# ── Folder scope access control (v0.4) ──────────────────────────────────
+
+
+def _normalize_path(full_path: str) -> str:
+    """Normalize a file path for pattern matching: forward slashes, resolved."""
+    try:
+        return str(Path(full_path).resolve())
+    except (OSError, ValueError):
+        return str(full_path).replace("\\", "/")
+
+
+def _pattern_matches(pattern: str, normalized_path: str) -> bool:
+    """Check if a path matches a glob pattern. Supports ** for recursive."""
+    pat = pattern.replace("\\", "/")
+    norm = normalized_path.replace("\\", "/")
+    if "**" in pat:
+        parts = pat.split("**")
+        prefix = parts[0]
+        suffix = parts[-1] if len(parts) > 1 else ""
+        if norm.startswith(prefix) and (not suffix or norm.endswith(suffix)):
+            return True
+        # Also try fnmatch substitution
+        simple = pat.replace("**", "*")
+        if fnmatch.fnmatch(norm, simple):
+            return True
+        return False
+    return fnmatch.fnmatch(norm, pat)
+
+
+def can_access_folder(
+    user: Dict[str, Any],
+    full_path: str,
+    permission: str = "view",
+) -> bool:
+    """
+    Check if a user can access a file at full_path with the given permission.
+    Admin role bypasses all folder checks.
+
+    Composition:
+      1. Admin → True
+      2. Deny rules (deny wins)
+      3. Allow rules
+      4. Default (FOLDER_DEFAULT_ALLOW)
+    """
+    # 1. Admin bypass
+    if user.get("role") == "admin":
+        return True
+
+    normalized = _normalize_path(full_path)
+
+    # 2. Determine principal type and ID
+    if user.get("auth_source") == "api_key":
+        principal_type = "api_key"
+        principal_id = str(user.get("api_key_id", ""))
+    else:
+        principal_type = "user"
+        principal_id = str(user["id"])
+
+    # 3. Fetch matching grants
+    with get_conn() as conn:
+        grants = conn.execute(
+            """
+            SELECT fg.*, fs.pattern
+            FROM folder_grants fg
+            JOIN folder_scopes fs ON fs.id = fg.scope_id
+            WHERE fg.principal_type = ? AND fg.principal_id = ?
+            """,
+            (principal_type, principal_id),
+        ).fetchall()
+
+    # 4. Check deny rules first (deny always wins)
+    for g in grants:
+        if g["effect"] == "deny" and g["permission"] == permission:
+            if _pattern_matches(g["pattern"], normalized):
+                return False
+
+    # 5. Check allow rules
+    for g in grants:
+        if g["effect"] == "allow" and g["permission"] == permission:
+            if _pattern_matches(g["pattern"], normalized):
+                return True
+
+    # 6. Default
+    return FOLDER_DEFAULT_ALLOW
+
+
 @router.get("/files/{file_id}/raw")
 def raw_file(file_id: int, user=Depends(current_user)):
     with get_conn() as conn:
@@ -135,6 +222,13 @@ def raw_file(file_id: int, user=Depends(current_user)):
     path = Path(item["full_path"])
     if not path.exists():
         raise HTTPException(status_code=404, detail="File missing on disk")
+
+    # v0.4: Folder scope + download permission check (P0 fix)
+    if not can_access_folder(user, item["full_path"], "download"):
+        raise HTTPException(status_code=403, detail="Folder scope denies download access")
+    if user.get("role") != "admin" and "download_files" not in (user.get("permissions") or []):
+        raise HTTPException(status_code=403, detail="Missing permission: download_files")
+
     # Raw file endpoint is intentionally a download. The preview endpoint below is inline.
     return FileResponse(
         path,
@@ -151,6 +245,10 @@ def preview_file(file_id: int, format: str, user=Depends(current_user)):
     item = row_to_dict(row)
     if not item:
         raise HTTPException(status_code=404, detail="File not found")
+
+    # v0.4: Folder scope check (P0 fix)
+    if not can_access_folder(user, item["full_path"], "view"):
+        raise HTTPException(status_code=403, detail="Folder scope denies view access")
     p = ensure_preview(item, format)
     if p["kind"] == "pdf":
         # Do not pass filename here. Starlette/FastAPI adds Content-Disposition when

@@ -23,6 +23,8 @@ a = Analysis(
         "cryptography", "cryptography.hazmat", "cryptography.hazmat.binders._openssl",
         "python_multipart",
         "starlette.middleware", "starlette.middleware.cors",
+        "ldap3", "ldap3.core", "ldap3.protocol", "ldap3.strategy",
+        "ldap3.operation", "ldap3.utils",
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,

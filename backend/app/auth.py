@@ -3,7 +3,9 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import json
 import os
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
@@ -19,6 +21,42 @@ from .db import get_conn, json_loads, row_to_dict, utc_now
 # "ValueError: password cannot be longer than 72 bytes".
 PBKDF2_ITERATIONS = 310_000
 security = HTTPBearer(auto_error=False)
+
+
+# ── API Key helpers (v0.4) ──────────────────────────────────────────────
+
+
+def generate_api_key() -> tuple:
+    """Returns (raw_key, prefix, key_hash)."""
+    raw = secrets.token_hex(32)
+    prefix = "qpk_" + raw[:8]
+    key_hash = hashlib.sha256(raw.encode()).hexdigest()
+    return raw, prefix, key_hash
+
+
+def verify_api_key(token: str) -> Optional[dict]:
+    """Look up an API key by its full hash. Returns the key row or None."""
+    key_hash = hashlib.sha256(token.encode()).hexdigest()
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM api_keys WHERE key_hash=? AND revoked_at IS NULL",
+            (key_hash,),
+        ).fetchone()
+        if not row:
+            return None
+        key = dict(row)
+        # Check expiry
+        if key.get("expires_at") and key["expires_at"] < utc_now():
+            return None
+        # Update last_used_at (fire-and-forget)
+        conn.execute(
+            "UPDATE api_keys SET last_used_at=? WHERE id=?",
+            (utc_now(), key["id"]),
+        )
+    return key
+
+
+# ── Password hashing ────────────────────────────────────────────────────
 
 
 def _b64(data: bytes) -> str:
@@ -105,20 +143,40 @@ async def current_user(
     token = access_token
     if credentials and credentials.scheme.lower() == "bearer":
         token = credentials.credentials
+    # Try X-API-Key header (v0.4 addition)
+    if not token:
+        token = request.headers.get("X-API-Key")
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    # ── Try JWT path (existing behavior) ──
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         sub = payload.get("sub")
-        if sub is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        user_id = int(sub)
+        if sub is not None:
+            user_id = int(sub)
+            user = get_user_by_id(user_id)
+            if user and user.get("is_active"):
+                return user
     except (JWTError, ValueError):
-        raise HTTPException(status_code=401, detail="Invalid token")
-    user = get_user_by_id(user_id)
-    if not user or not user.get("is_active"):
-        raise HTTPException(status_code=401, detail="Inactive or missing user")
-    return user
+        pass  # Not a valid JWT — try API key
+
+    # ── Try API key path (v0.4) ──
+    if token.startswith("qpk_"):
+        key = verify_api_key(token)
+        if key:
+            user = get_user_by_id(key["user_id"])
+            if user:
+                key_scopes = json.loads(key["scopes_json"])
+                user_perms = user.get("permissions", [])
+                # Intersection of key scopes and user permissions
+                effective_perms = [p for p in user_perms if p in key_scopes]
+                user["permissions"] = effective_perms
+                user["auth_source"] = "api_key"
+                user["api_key_id"] = key["id"]
+                return user
+
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication token")
 
 
 def require_permission(permission: str):

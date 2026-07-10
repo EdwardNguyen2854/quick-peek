@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .auth import ensure_admin_user
 from .config import ADMIN_PASSWORD, ADMIN_PERMISSIONS, ADMIN_USERNAME
-from .db import init_db
+from .db import cleanup_history, init_db, rebuild_fts5
 from .file_index import reindex_files
 from .routers import admin, auth, dashboard, folders, peek
 
@@ -32,6 +32,16 @@ def create_app() -> FastAPI:
         reindex_files()
     except Exception:
         # The app should still boot even if a network drive is offline.
+        pass
+
+    # v0.4: Rebuild FTS5 index and cleanup old history on boot
+    try:
+        rebuild_fts5()
+    except Exception:
+        pass
+    try:
+        cleanup_history()
+    except Exception:
         pass
 
     app = FastAPI(title="Quick Peek API", version="0.1.0")
