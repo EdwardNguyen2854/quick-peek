@@ -31,3 +31,11 @@ The Vite build outputs to `backend/app/static`. The PyInstaller spec bundles tha
 ## STEP viewer
 
 `StepViewer.tsx` loads the raw STEP preview URL and uses `occt-wasm` to import and tessellate the model in the browser. Vite excludes `occt-wasm` from dependency pre-bundling and targets ESNext so the WebAssembly runtime is emitted correctly.
+
+## STEP preview grid
+
+STEP result cards render automatically. `StepThumbnail` shares the same cached tessellated mesh as the full `StepViewer`, then generates a static image with a temporary WebGL renderer. This avoids reparsing a model when it is opened and avoids keeping one permanent WebGL context per result card.
+
+## UI layout
+
+The frontend uses a single professional workspace: sticky product header, compact format selector, two-column search form, responsive results grid, and a focused full-screen preview modal. Keep new controls visually restrained and avoid adding secondary navigation or dashboard surfaces.
