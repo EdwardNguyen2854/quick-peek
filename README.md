@@ -77,7 +77,7 @@ Quick Peek does not render the native STEP B-rep directly. The preview pipeline 
 STEP B-rep → OpenCascade WebAssembly tessellation → Three.js mesh
 ```
 
-STEP tessellation runs locally in the browser; no FreeCAD install or `QUICKPEEK_STEP_CONVERTER_CMD` is required. This is intended for quick visual inspection and engineering checks. Use a CAD system when exact B-rep topology or precision geometry validation is required.
+STEP tessellation runs locally in the browser; no FreeCAD install or `QUICKPEEK_STEP_CONVERTER_CMD` is required. Use a modern browser with WebAssembly SIMD/tail-call support (current Chrome/Edge, Firefox, or Safari). This is intended for quick visual inspection and engineering checks. Use a CAD system when exact B-rep topology or precision geometry validation is required.
 
 ## Windows executable
 
