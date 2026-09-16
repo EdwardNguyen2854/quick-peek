@@ -201,7 +201,6 @@ function StepViewport({ url, active = true, compact = false, label }: StepViewpo
 
     function renderFrame() {
       if (disposed) return;
-      controls.update();
       renderer.render(scene, camera);
     }
 
@@ -271,7 +270,7 @@ function StepViewport({ url, active = true, compact = false, label }: StepViewpo
     function animate() {
       if (disposed || compact) return;
       controls.update();
-      renderer.render(scene, camera);
+      renderFrame();
       animationFrame = requestAnimationFrame(animate);
     }
 
