@@ -274,7 +274,7 @@ def preview_file(file_id: int, format: str, user=Depends(current_user)):
       <rect x="24" y="24" width="552" height="352" rx="18" fill="#f9fafb" stroke="#e5e7eb"/>
       <text x="48" y="78" font-family="Arial" font-size="22" font-weight="700" fill="#111827">STEP file found</text>
       <text x="48" y="118" font-family="Arial" font-size="14" fill="#4b5563">{name}</text>
-      <text x="48" y="162" font-family="Arial" font-size="13" fill="#6b7280">Configure STEP → GLB conversion for browser 3D preview.</text>
+      <text x="48" y="162" font-family="Arial" font-size="13" fill="#6b7280">Configure STEP tessellation → GLB for browser 3D preview.</text>
       <path d="M265 250 L340 210 L415 250 L340 292 Z" fill="#fff" stroke="#111827"/>
       <path d="M265 250 L265 175 L340 135 L340 210 Z" fill="#f3f4f6" stroke="#111827"/>
       <path d="M340 210 L340 135 L415 175 L415 250 Z" fill="#e5e7eb" stroke="#111827"/>
