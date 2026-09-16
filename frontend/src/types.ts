@@ -1,9 +1,12 @@
-export type Format = 'step' | 'pdf' | 'dxf' | 'doc' | 'xls' | 'ppt' | 'md' | 'txt' | 'html';
+export type FileFormat = 'step' | 'pdf' | 'dxf' | 'doc' | 'xls' | 'ppt' | 'md' | 'txt' | 'html';
+export type Format = 'all' | FileFormat;
+export type MatchType = 'exact' | 'exact_normalized' | 'token' | 'variant' | 'partial';
 
 export type FileItem = {
   file_id: number;
   filename: string;
   extension: string;
+  format: FileFormat;
   size_bytes: number;
   modified_at: number;
   preview_kind: 'pdf' | 'svg' | 'step' | 'unknown' | 'html' | 'txt' | 'md' | 'doc' | 'xls' | 'ppt';
@@ -11,13 +14,51 @@ export type FileItem = {
   message?: string | null;
   preview_url: string;
   raw_url: string;
+  match_type?: MatchType | null;
+  match_reason?: string | null;
+  revision?: string | null;
+  folder_class?: string | null;
+  full_path?: string | null;
+};
+
+export type SearchSuggestion = {
+  file_id: number;
+  filename: string;
+  extension: string;
+  distance: number;
+  reason: string;
+  revision?: string | null;
+  folder_class?: string | null;
 };
 
 export type SearchResult = {
   code: string;
-  status: 'found' | 'multiple_matches' | 'not_found';
+  normalized_code: string;
+  status: 'found' | 'multiple_matches' | 'suggested' | 'not_found';
   matches_count: number;
+  match_type?: MatchType | null;
+  match_reason?: string | null;
+  recommended_file?: FileItem | null;
   files: FileItem[];
+  suggestions: SearchSuggestion[];
+};
+
+export type IndexState = {
+  status: 'idle' | 'indexing' | 'ready' | 'error' | string;
+  last_started_at?: string | null;
+  last_completed_at?: string | null;
+  files_count: number;
+  roots_count: number;
+  last_error?: string | null;
+};
+
+export type SearchResponse = {
+  format: Format;
+  codes_count: number;
+  files_found: number;
+  folder_path?: string | null;
+  index: IndexState;
+  results: SearchResult[];
 };
 
 export type FolderItem = {
