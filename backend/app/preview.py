@@ -32,8 +32,6 @@ def ensure_preview(file_row: dict, file_format: str) -> Dict[str, str | bool | N
                 out.write_text(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400"><rect width="600" height="400" fill="white"/><text x="30" y="60" font-family="Arial" font-size="18">DXF preview failed</text><text x="30" y="95" font-family="Arial" font-size="13">{str(exc)}</text></svg>', encoding="utf-8")
                 return {"kind": "svg", "ready": False, "message": f"DXF preview failed: {exc}", "cache_file": str(out)}
         return {"kind": "svg", "ready": True, "message": None, "cache_file": str(out)}
-    if file_format == "obj":
-        return {"kind": "obj", "ready": True, "message": None, "cache_file": None}
     if file_format == "step":
         out = PREVIEW_DIR / f"{key}.glb"
         if out.exists():
