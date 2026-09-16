@@ -20,7 +20,6 @@ FORMAT_PERMISSION = {
     "step": "view_step",
     "pdf": "view_pdf",
     "dxf": "view_dxf",
-    "obj": "view_obj",
     "doc": "view_doc",
     "xls": "view_xls",
     "ppt": "view_ppt",
@@ -121,8 +120,6 @@ def _media_type_for_extension(extension: str) -> Optional[str]:
         return "application/dxf"
     if ext in {"stp", "step"}:
         return "application/step"
-    if ext == "obj":
-        return "model/obj"
     return None
 
 
@@ -255,9 +252,6 @@ def preview_file(file_id: int, format: str, user=Depends(current_user)):
         # filename is supplied, and many browsers treat that as a download.
         # This endpoint is for in-app viewing, so return it inline.
         return FileResponse(Path(item["full_path"]), media_type="application/pdf")
-    if p["kind"] == "obj":
-        # OBJ is a mesh format that Three.js can load directly. Keep it inline for the in-app viewer.
-        return FileResponse(Path(item["full_path"]), media_type="model/obj")
     if p["kind"] == "txt":
         # Serve raw text file with text/plain content type
         return FileResponse(Path(item["full_path"]), media_type="text/plain; charset=utf-8")
