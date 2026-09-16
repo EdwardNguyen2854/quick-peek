@@ -13,11 +13,13 @@ export default function PreviewCard({
   result,
   format,
   cardHeight,
+  pauseStepPreview,
   onOpen
 }: {
   result: SearchResult;
   format: Format;
   cardHeight: number;
+  pauseStepPreview: boolean;
   onOpen: (file: FileItem) => void;
 }) {
   const file = result.files[0];
@@ -40,7 +42,7 @@ export default function PreviewCard({
       <div className="preview-frame">
         {file ? (
           file.preview_kind === 'step' ? (
-            <StepCardViewer url={apiUrl(file.preview_url)} label={file.filename} />
+            <StepCardViewer url={apiUrl(file.preview_url)} label={file.filename} suspended={pauseStepPreview} />
           ) : file.preview_kind === 'pdf' ? (
             <iframe
               className="preview-pdf-card"
