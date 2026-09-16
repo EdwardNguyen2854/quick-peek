@@ -2,7 +2,6 @@ import { Download, X } from 'lucide-react';
 import { apiUrl } from '../api';
 import type { FileItem, Format } from '../types';
 import StepViewer from './viewers/StepViewer';
-import PanZoomImage from './viewers/PanZoomImage';
 import DxfVectorViewer from './viewers/DxfVectorViewer';
 import DocViewer from './viewers/DocViewer';
 import MarkdownViewer from './viewers/MarkdownViewer';
@@ -29,8 +28,7 @@ export default function ViewerModal({ code, format, file, onClose }: { code: str
           </div>
         </header>
         <div className="viewer-body">
-          {format === 'step' && file.preview_kind === 'glb' && <StepViewer url={previewUrl} />}
-          {format === 'step' && file.preview_kind !== 'glb' && <PanZoomImage url={previewUrl} label="STEP placeholder preview" />}
+          {format === 'step' && <StepViewer url={previewUrl} />}
           {format === 'pdf' && <iframe className="pdf-frame" src={pdfViewUrl} title={file.filename} />}
           {format === 'dxf' && <DxfVectorViewer url={previewUrl} label="DXF preview" />}
           {(format === 'doc' || format === 'xls' || format === 'ppt') && <DocViewer url={previewUrl} />}
