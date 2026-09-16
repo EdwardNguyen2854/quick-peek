@@ -331,7 +331,7 @@ export default function StepViewer({ url }: { url: string }) {
       cancelAnimationFrame(animationFrame);
       window.removeEventListener('resize', resize);
       controls.dispose();
-      if (model) disposeObject(model);
+      disposeObject(scene);
       renderer.dispose();
       element.innerHTML = '';
     };
