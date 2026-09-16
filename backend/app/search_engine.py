@@ -104,7 +104,8 @@ def classify_folder(path: str) -> tuple[str, int]:
 
     for folder_class, priority, markers in FOLDER_RULES:
         for marker in markers:
-            if marker in parts or marker in lower:
+            pattern = re.compile(rf"(?<![a-z0-9]){re.escape(marker)}(?![a-z0-9])")
+            if any(pattern.search(part) for part in parts):
                 return folder_class, priority
 
     return "normal", 250
@@ -126,13 +127,7 @@ def _probable_code(stem_without_revision: str) -> str:
     if not tokens:
         return stem_without_revision
 
-    # Preserve the original separators when the whole stem appears to be the identifier.
-    if len(tokens) == 1:
-        return stem_without_revision
-
-    # Descriptor suffixes are already removed; otherwise retain the complete stem because
-    # engineering identifiers often legitimately contain separators.
-    return stem_without_revision
+    return "-".join(tokens)
 
 
 def parse_filename(filename: str, full_path: str) -> ParsedFilename:
@@ -167,11 +162,14 @@ def parse_filename(filename: str, full_path: str) -> ParsedFilename:
 def match_candidate(query: NormalizedCode, row: dict) -> tuple[Optional[str], int, str]:
     compact_stem = str(row.get("compact_stem") or "")
     compact_code = str(row.get("compact_code") or "")
+    parsed_code = str(row.get("parsed_code") or "")
     normalized_stem = str(row.get("normalized_stem") or "")
     tokens = tuple(str(row.get("tokens") or "").split("|"))
 
     if query.compact and compact_code == query.compact:
-        return "exact", 600, "Exact part number"
+        if parsed_code == query.normalized:
+            return "exact", 600, "Exact part number"
+        return "exact_normalized", 585, "Exact after separator/case normalization"
 
     if query.compact and compact_stem == query.compact:
         if normalized_stem == query.normalized:
