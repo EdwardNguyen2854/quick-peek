@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, Response
 
 from ..db import get_conn, row_to_dict
-from ..file_index import index_folder, search_index
+from ..file_index import index_folder, reindex_files, search_index
 from ..preview import ensure_preview
 from ..schemas import SearchRequest
 
@@ -53,7 +53,7 @@ def search(payload: SearchRequest):
             raise HTTPException(status_code=400, detail=f"Cannot index working folder: {exc}")
         folder_path = str(folder.resolve())
 
-    indexed_results = search_index(payload.format, cleaned, root_path=folder_path)
+    if not folder_path:\n        try:\n            reindex_files()\n        except OSError:\n            pass\n\n    indexed_results = search_index(payload.format, cleaned, root_path=folder_path)
     results = []
     files_found = 0
     for item in indexed_results:
