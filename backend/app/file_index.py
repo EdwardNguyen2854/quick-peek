@@ -221,7 +221,8 @@ def _scope_clause(root_path: Optional[str]) -> tuple[str, list[str]]:
     if not root.is_absolute():
         root = root.resolve()
     prefix = str(root.resolve()).rstrip("\\/")
-    return " AND (full_path = ? OR full_path LIKE ?)", [prefix, prefix + os.sep + "%"]
+    child_prefix = prefix + os.sep
+    return " AND (full_path = ? OR substr(full_path, 1, ?) = ?)", [prefix, len(child_prefix), child_prefix]
 
 
 def _format_clause(file_format: str) -> tuple[str, list[str]]:
@@ -243,11 +244,19 @@ def _fetch_candidates(
     scope_clause, scope_params = _scope_clause(root_path)
 
     if fuzzy:
-        prefix = query.compact[: max(3, min(6, len(query.compact)))]
+        prefix = query.compact[: max(2, min(5, len(query.compact)))]
+        anchor = query.compact[3:8] if len(query.compact) >= 8 else query.compact[-3:]
         if not prefix:
             return []
-        candidate_clause = " AND (compact_code LIKE ? OR compact_stem LIKE ?)"
-        candidate_params = [prefix + "%", prefix + "%"]
+        candidate_clause = """
+            AND (
+                compact_code LIKE ?
+                OR compact_stem LIKE ?
+                OR compact_code LIKE ?
+                OR compact_stem LIKE ?
+            )
+        """
+        candidate_params = [prefix + "%", prefix + "%", "%" + anchor + "%", "%" + anchor + "%"]
     else:
         candidate_clause = """
             AND (
