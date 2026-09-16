@@ -177,7 +177,7 @@ function StepViewport({ url, active = true, compact = false, label }: StepViewpo
     element.replaceChildren(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
+    controls.enableDamping = !compact;
     controls.dampingFactor = 0.08;
     controls.screenSpacePanning = true;
     controls.enableRotate = true;
@@ -199,6 +199,22 @@ function StepViewport({ url, active = true, compact = false, label }: StepViewpo
     fill.position.set(-3, 2, 1);
     scene.add(fill);
 
+    function renderFrame() {
+      if (disposed) return;
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    function captureSnapshot() {
+      if (!compact || disposed) return;
+      renderer.render(scene, camera);
+      try {
+        setSnapshot(renderer.domElement.toDataURL('image/png'));
+      } catch {
+        // Snapshot is only a fallback for off-screen cards.
+      }
+    }
+
     function resize() {
       if (!element) return;
       const width = Math.max(element.clientWidth, 1);
@@ -214,6 +230,8 @@ function StepViewport({ url, active = true, compact = false, label }: StepViewpo
         controls.maxDistance = radius * 100;
         controls.update();
       }
+
+      renderFrame();
     }
 
     resize();
@@ -239,16 +257,8 @@ function StepViewport({ url, active = true, compact = false, label }: StepViewpo
           scene.add(new THREE.AxesHelper(radius * 0.28));
         }
 
-        renderer.render(scene, camera);
-
-        if (compact) {
-          try {
-            setSnapshot(renderer.domElement.toDataURL('image/png'));
-          } catch {
-            // Snapshot is only a fallback for off-screen cards.
-          }
-        }
-
+        renderFrame();
+        captureSnapshot();
         setStatus('');
       } catch (err) {
         if (!disposed) {
@@ -259,19 +269,26 @@ function StepViewport({ url, active = true, compact = false, label }: StepViewpo
     }
 
     function animate() {
-      if (disposed) return;
+      if (disposed || compact) return;
       controls.update();
       renderer.render(scene, camera);
       animationFrame = requestAnimationFrame(animate);
     }
 
+    if (compact) {
+      controls.addEventListener('change', renderFrame);
+      controls.addEventListener('end', captureSnapshot);
+    }
+
     load();
-    animate();
+    if (!compact) animate();
 
     return () => {
       disposed = true;
       cancelAnimationFrame(animationFrame);
       resizeObserver.disconnect();
+      controls.removeEventListener('change', renderFrame);
+      controls.removeEventListener('end', captureSnapshot);
       controls.dispose();
       disposeObject(scene);
       renderer.dispose();
