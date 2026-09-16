@@ -7,19 +7,22 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from ..db import get_conn, row_to_dict
-from ..file_index import index_folder, reindex_files, search_index
+from ..file_index import index_status, refresh_index, search_index
 from ..preview import ensure_preview
-from ..schemas import SearchRequest
+from ..schemas import IndexRefreshRequest, SearchRequest
+from ..search_engine import normalize_code
 
 router = APIRouter(prefix="/api", tags=["peek"])
 
 
-def _file_payload(row: dict, file_format: str) -> dict:
+def _file_payload(row: dict, requested_format: str) -> dict:
+    file_format = row.get("file_format") or requested_format
     preview = ensure_preview(row, file_format)
     return {
         "file_id": row["id"],
         "filename": row["filename"],
         "extension": row["extension"],
+        "format": file_format,
         "size_bytes": row["size_bytes"],
         "modified_at": row["modified_at"],
         "preview_kind": preview["kind"],
@@ -27,59 +30,115 @@ def _file_payload(row: dict, file_format: str) -> dict:
         "message": preview["message"],
         "preview_url": f"/api/files/{row['id']}/preview?format={file_format}",
         "raw_url": f"/api/files/{row['id']}/raw",
+        "match_type": row.get("match_type"),
+        "match_reason": row.get("match_reason"),
+        "revision": row.get("revision_raw"),
+        "folder_class": row.get("folder_class") or "normal",
+        "full_path": row.get("full_path"),
     }
+
+
+def _clean_codes(codes: list[str]) -> list[str]:
+    cleaned: list[str] = []
+    seen: set[str] = set()
+
+    for raw in codes:
+        normalized = normalize_code(raw)
+        if not normalized.cleaned:
+            continue
+
+        key = normalized.compact or normalized.normalized
+        if key in seen:
+            continue
+
+        seen.add(key)
+        cleaned.append(normalized.cleaned)
+
+    return cleaned
+
+
+def _validated_folder(folder_path: Optional[str]) -> Optional[str]:
+    value = (folder_path or "").strip()
+    if not value:
+        return None
+
+    folder = Path(value).expanduser()
+    if not folder.is_absolute():
+        folder = folder.resolve()
+
+    if not folder.exists() or not folder.is_dir():
+        raise HTTPException(status_code=400, detail="Working folder does not exist or is not a folder")
+
+    return str(folder.resolve())
 
 
 @router.post("/peek/search")
 def search(payload: SearchRequest):
-    cleaned: list[str] = []
-    seen: set[str] = set()
-    for code in payload.codes:
-        value = code.strip()
-        if value and value not in seen:
-            cleaned.append(value)
-            seen.add(value)
-
-    folder_path = (payload.folder_path or "").strip() or None
-    if folder_path:
-        folder = Path(folder_path).expanduser()
-        if not folder.exists() or not folder.is_dir():
-            raise HTTPException(status_code=400, detail="Working folder does not exist or is not a folder")
-        try:
-            index_folder(folder)
-        except PermissionError:
-            raise HTTPException(status_code=403, detail="No permission to read working folder")
-        except OSError as exc:
-            raise HTTPException(status_code=400, detail=f"Cannot index working folder: {exc}")
-        folder_path = str(folder.resolve())
-
-    if not folder_path:
-        try:
-            reindex_files()
-        except OSError:
-            pass
+    cleaned = _clean_codes(payload.codes)
+    folder_path = _validated_folder(payload.folder_path)
 
     indexed_results = search_index(payload.format, cleaned, root_path=folder_path)
     results = []
     files_found = 0
+
     for item in indexed_results:
         matches = item["matches"]
+        suggestions = item["suggestions"]
         files_found += len(matches)
+
         files = [_file_payload(match, payload.format) for match in matches[:5]]
-        status = "not_found" if not matches else ("multiple_matches" if len(matches) > 1 else "found")
-        results.append({
-            "code": item["code"],
-            "status": status,
-            "matches_count": len(matches),
-            "files": files,
-        })
+        recommended = files[0] if files else None
+
+        if not matches:
+            status = "suggested" if suggestions else "not_found"
+        elif len(matches) > 1:
+            status = "multiple_matches"
+        else:
+            status = "found"
+
+        results.append(
+            {
+                "code": item["code"],
+                "normalized_code": item["normalized_code"],
+                "status": status,
+                "matches_count": item["matches_count"],
+                "match_type": recommended.get("match_type") if recommended else None,
+                "match_reason": recommended.get("match_reason") if recommended else None,
+                "recommended_file": recommended,
+                "files": files,
+                "suggestions": suggestions,
+            }
+        )
 
     return {
         "format": payload.format,
         "codes_count": len(cleaned),
         "files_found": files_found,
         "folder_path": folder_path,
+        "index": index_status(),
         "results": results,
+    }
+
+
+@router.get("/index/status")
+def get_search_index_status():
+    return index_status()
+
+
+@router.post("/index/refresh")
+def refresh_search_index(payload: IndexRefreshRequest):
+    folder_path = _validated_folder(payload.folder_path)
+    try:
+        result = refresh_index(folder_path)
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="No permission to read the selected folder")
+    except OSError as exc:
+        raise HTTPException(status_code=400, detail=f"Cannot refresh index: {exc}")
+
+    return {
+        **result,
+        "folder_path": folder_path,
+        "index": index_status(),
     }
 
 
@@ -119,7 +178,8 @@ def raw_file(file_id: int):
 @router.get("/files/{file_id}/preview")
 def preview_file(file_id: int, format: str):
     item = _get_file(file_id)
-    preview = ensure_preview(item, format)
+    file_format = item.get("file_format") or format
+    preview = ensure_preview(item, file_format)
 
     if preview["kind"] == "step":
         return FileResponse(Path(item["full_path"]), media_type="application/step")
@@ -135,8 +195,7 @@ def preview_file(file_id: int, format: str):
         return FileResponse(Path(item["full_path"]), media_type="text/html; charset=utf-8")
     if preview.get("cache_file"):
         cache_path = Path(str(preview["cache_file"]))
-        if cache_path.exists():
-            if cache_path.suffix == ".svg":
-                return FileResponse(cache_path, media_type="image/svg+xml")
+        if cache_path.exists() and cache_path.suffix == ".svg":
+            return FileResponse(cache_path, media_type="image/svg+xml")
 
     raise HTTPException(status_code=404, detail="Preview is not available")
