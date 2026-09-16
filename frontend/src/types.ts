@@ -6,7 +6,7 @@ export type FileItem = {
   extension: string;
   size_bytes: number;
   modified_at: number;
-  preview_kind: 'pdf' | 'svg' | 'glb' | 'step' | 'unknown' | 'html' | 'txt' | 'md' | 'doc' | 'xls' | 'ppt';
+  preview_kind: 'pdf' | 'svg' | 'step' | 'unknown' | 'html' | 'txt' | 'md' | 'doc' | 'xls' | 'ppt';
   preview_ready: boolean;
   message?: string | null;
   preview_url: string;
