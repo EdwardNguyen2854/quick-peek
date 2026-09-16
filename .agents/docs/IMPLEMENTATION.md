@@ -2,44 +2,50 @@
 
 ## Backend startup
 
-`backend/run_backend.bat` and `backend/run_backend.sh`:
-1. create `.venv` if missing
-2. install requirements with the venv interpreter
-3. stop on installation failure
-4. run uvicorn with the same venv interpreter
+`backend/run_backend.bat` and `backend/run_backend.sh` use `backend/.venv`, stop on install failure, and run uvicorn with the same interpreter.
 
-This prevents fallback to a global Python installation.
+## Search modules
+
+- `db.py`: schema migration, SQLite connection helpers, index state
+- `file_index.py`: filesystem scan, metadata upsert, candidate retrieval, index status/refresh
+- `search_engine.py`: normalization, revision/folder parsing, match classification, deterministic ranking, fuzzy suggestions
+- `routers/peek.py`: search/index API and preview/raw file routes
+
+Search ranking belongs on the backend. The frontend must display backend explanations rather than reproducing ranking rules.
+
+## Index lifecycle
+
+Configured roots are indexed on startup. Refreshing an unchanged file reuses its existing parsed metadata when size and mtime are unchanged. Normal search never calls the filesystem indexer.
+
+The UI exposes index health and a manual Refresh action. Selecting a folder through the folder picker refreshes that folder explicitly.
+
+## Match model
+
+Strong match classes:
+
+- exact
+- exact normalized
+- exact token
+- variant/prefix
+- normalized partial
+
+If no strong match exists, edit-distance suggestions are considered conservatively. Suggestions remain a separate result status.
 
 ## Frontend
 
-`App.tsx` renders only `QuickPeekPage`.
+`QuickPeekPage.tsx` provides:
+- All or format-specific search
+- robust paste normalization
+- index status/refresh
+- batch result filters
+- persisted card dimensions
 
-`api.ts` uses relative URLs. Vite proxies `/api` to backend port 8000 in development.
-
-## Backend
-
-`main.py` includes only:
-- `peek.router`
-- `folders.router`
-
-SQLite stores the file index only.
-
-## Build
-
-The Vite build outputs to `backend/app/static`. The PyInstaller spec bundles that directory as `app/static`.
+`PreviewCard.tsx` displays the backend match reason, revision/folder context, fuzzy suggestions, and inspectable alternative matches.
 
 ## STEP viewer
 
-`StepViewer.tsx` loads the raw STEP preview URL and uses `occt-wasm` to import and tessellate the model in the browser. Vite excludes `occt-wasm` from dependency pre-bundling and targets ESNext so the WebAssembly runtime is emitted correctly.
+`StepViewer.tsx` imports STEP using `occt-wasm`. Interactive result cards share cached tessellation data, use `IntersectionObserver` to limit WebGL contexts, and use `ResizeObserver` for card resizing.
 
-## STEP preview grid
+## Build and CI
 
-STEP result cards render automatically as interactive Three.js viewports. `StepCardViewer` shares the cached tessellated mesh with the full `StepViewer` and uses `IntersectionObserver` to keep WebGL contexts only for cards in or near the viewport. Cards support direct rotate, wheel zoom, and pan; off-screen cards release their renderer while retaining a lightweight snapshot and cached mesh.
-
-## UI layout
-
-The frontend uses a single professional workspace: sticky product header, compact format selector, two-column search form, responsive results grid, and a focused full-screen preview modal. Keep new controls visually restrained and avoid adding secondary navigation or dashboard surfaces.
-
-## Card sizing
-
-The Results toolbar exposes persisted card width and height sliders. Width controls the responsive grid track size; height controls the full card height. STEP viewports use ResizeObserver so their renderer and camera update when card dimensions change.
+Vite builds into `backend/app/static`. GitHub Actions runs backend compilation/unit/integration tests and the frontend TypeScript/Vite build on pull requests and pushes to `main`.
