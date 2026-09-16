@@ -3,8 +3,8 @@ Optional FreeCAD conversion helper.
 Usage idea:
   FreeCADCmd tools/freecad_step_to_glb.py input.step output.glb
 
-FreeCAD export support depends on your FreeCAD build. If GLB export is not available,
-export OBJ/STL with a different helper and adjust backend/app/preview.py.
+FreeCAD export support depends on your FreeCAD build. This helper must produce GLB
+because Quick Peek renders tessellated STEP geometry from GLB in the browser.
 """
 import sys
 import FreeCAD

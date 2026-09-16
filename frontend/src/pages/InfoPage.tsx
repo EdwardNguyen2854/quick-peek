@@ -14,12 +14,12 @@ const features = [
   {
     icon: <Zap size={22} />,
     title: 'Multi-format preview',
-    desc: 'Preview STEP, PDF, DXF, and OBJ files directly in the browser. 3D STEP files get a GLB thumbnail via FreeCAD conversion.',
+    desc: 'Preview STEP, PDF, and DXF files directly in the browser. STEP geometry is tessellated and converted to GLB for fast 3D rendering.',
   },
   {
     icon: <Shield size={22} />,
     title: 'Role-based access',
-    desc: 'Admin controls which users can view which formats. Permissions are per-format: view_step, view_pdf, view_dxf, view_obj.',
+    desc: 'Admin controls which users can view which formats. Permissions are per-format, including view_step, view_pdf, and view_dxf.',
   },
 ];
 
@@ -27,7 +27,7 @@ const specs = [
   { label: 'Backend', value: 'FastAPI + SQLite' },
   { label: 'Frontend', value: 'React + Vite + TypeScript' },
   { label: 'Auth', value: 'JWT Bearer tokens' },
-  { label: '3D Preview', value: 'STEP → GLB via FreeCAD CLI' },
+  { label: '3D Preview', value: 'Tessellated STEP → GLB via FreeCAD CLI' },
   { label: 'PDF Preview', value: 'Embedded iframe (PDF.js)' },
   { label: 'DXF Preview', value: 'SVG vector render (custom parser)' },
   { label: 'Image formats', value: 'PNG, JPG, SVG, WebP via <img>' },
@@ -75,10 +75,9 @@ export default function InfoPage() {
         <h3 style={{ marginBottom: 14 }}>Supported file types</h3>
         <div className="format-table">
           {[
-            { fmt: 'STEP', exts: ['.stp', '.step'], note: '3D CAD model — preview via GLB conversion' },
+            { fmt: 'STEP', exts: ['.stp', '.step'], note: 'Tessellated 3D geometry — quick visual inspection and engineering checks' },
             { fmt: 'PDF', exts: ['.pdf'], note: 'Document — embedded PDF viewer' },
             { fmt: 'DXF', exts: ['.dxf'], note: '2D/3D vector — SVG vector render' },
-            { fmt: 'OBJ', exts: ['.obj'], note: '3D mesh — rendered in browser via Three.js' },
           ].map((f) => (
             <div key={f.fmt} className="format-row-item">
               <strong>{f.fmt}</strong>
@@ -89,6 +88,9 @@ export default function InfoPage() {
             </div>
           ))}
         </div>
+        <p className="muted" style={{ margin: '14px 0 0', fontSize: 12 }}>
+          STEP previews use tessellated geometry rather than the native STEP B-rep. They are intended for quick visual inspection and engineering checks; use a CAD system for authoritative geometry interrogation or precision validation.
+        </p>
       </section>
     </div>
   );

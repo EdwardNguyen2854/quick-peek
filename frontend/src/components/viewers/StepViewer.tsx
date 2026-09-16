@@ -72,5 +72,5 @@ export default function StepViewer({ url }: { url: string }) {
     };
   }, [url]);
 
-  return <div className="step-viewer" ref={ref}><div className="viewer-hint">Rotate · pan · zoom</div></div>;
+  return <div className="step-viewer" ref={ref}><div className="viewer-hint">Tessellated STEP · rotate · pan · zoom</div></div>;
 }

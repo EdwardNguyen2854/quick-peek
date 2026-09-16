@@ -136,7 +136,7 @@ Use **three separate format types** (`doc`, `xls`, `ppt`) rather than a single `
 ### Consequences
 - Each format type has its own search endpoint and permission check.
 - The `FORMAT_PERMISSION` dict maps each format to its corresponding permission string.
-- Frontend format selector has 10 items (step, pdf, dxf, obj, doc, xls, ppt, md, txt, html).
+- Frontend format selector has 9 items (step, pdf, dxf, doc, xls, ppt, md, txt, html).
 
 ---
 

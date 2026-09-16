@@ -20,7 +20,6 @@ FORMAT_PERMISSION = {
     "step": "view_step",
     "pdf": "view_pdf",
     "dxf": "view_dxf",
-    "obj": "view_obj",
     "doc": "view_doc",
     "xls": "view_xls",
     "ppt": "view_ppt",
@@ -121,8 +120,6 @@ def _media_type_for_extension(extension: str) -> Optional[str]:
         return "application/dxf"
     if ext in {"stp", "step"}:
         return "application/step"
-    if ext == "obj":
-        return "model/obj"
     return None
 
 
@@ -255,9 +252,6 @@ def preview_file(file_id: int, format: str, user=Depends(current_user)):
         # filename is supplied, and many browsers treat that as a download.
         # This endpoint is for in-app viewing, so return it inline.
         return FileResponse(Path(item["full_path"]), media_type="application/pdf")
-    if p["kind"] == "obj":
-        # OBJ is a mesh format that Three.js can load directly. Keep it inline for the in-app viewer.
-        return FileResponse(Path(item["full_path"]), media_type="model/obj")
     if p["kind"] == "txt":
         # Serve raw text file with text/plain content type
         return FileResponse(Path(item["full_path"]), media_type="text/plain; charset=utf-8")
@@ -280,7 +274,7 @@ def preview_file(file_id: int, format: str, user=Depends(current_user)):
       <rect x="24" y="24" width="552" height="352" rx="18" fill="#f9fafb" stroke="#e5e7eb"/>
       <text x="48" y="78" font-family="Arial" font-size="22" font-weight="700" fill="#111827">STEP file found</text>
       <text x="48" y="118" font-family="Arial" font-size="14" fill="#4b5563">{name}</text>
-      <text x="48" y="162" font-family="Arial" font-size="13" fill="#6b7280">Configure STEP → GLB conversion for browser 3D preview.</text>
+      <text x="48" y="162" font-family="Arial" font-size="13" fill="#6b7280">Configure STEP tessellation → GLB for browser 3D preview.</text>
       <path d="M265 250 L340 210 L415 250 L340 292 Z" fill="#fff" stroke="#111827"/>
       <path d="M265 250 L265 175 L340 135 L340 210 Z" fill="#f3f4f6" stroke="#111827"/>
       <path d="M340 210 L340 135 L415 175 L415 250 Z" fill="#e5e7eb" stroke="#111827"/>

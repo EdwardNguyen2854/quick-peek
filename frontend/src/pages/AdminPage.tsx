@@ -22,7 +22,7 @@ export default function AdminPage() {
     e.preventDefault();
     await api('/api/admin/users', {
       method: 'POST',
-      body: JSON.stringify({ ...form, permissions: form.role === 'admin' ? permissions : ['use_quick_peek', 'view_step', 'view_pdf', 'view_dxf', 'view_obj'], is_active: true })
+      body: JSON.stringify({ ...form, permissions: form.role === 'admin' ? permissions : ['use_quick_peek', 'view_step', 'view_pdf', 'view_dxf'], is_active: true })
     });
     setForm({ username: '', password: '', role: 'user' });
     setMessage('User created');

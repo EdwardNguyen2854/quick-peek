@@ -37,7 +37,7 @@ File Search → ensure_preview() → format-specific handler
                                  ├── Office formats → python-docx/openpyxl/pptx → HTML → cache → serve
                                  ├── Markdown → markdown library → HTML → cache → serve
                                  ├── Text/HTML → direct serve with appropriate content-type
-                                 └── existing formats (PDF, DXF, OBJ, STEP) → unchanged
+                                 └── existing formats (PDF, DXF, STEP) → unchanged
 ```
 
 ---
@@ -76,7 +76,7 @@ File Search → ensure_preview() → format-specific handler
 3. Text/Markdown/HTML served with correct content types
 4. Preview caching works for converted files
 5. Frontend handles all viewer types correctly
-6. No regression on existing formats (PDF, DXF, OBJ, STEP)
+6. No regression on existing formats (PDF, DXF, STEP)
 7. App starts normally without any system-level dependencies
 
 ---
