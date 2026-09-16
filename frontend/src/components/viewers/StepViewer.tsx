@@ -9,10 +9,15 @@ type StepMeshData = {
   indices: Uint32Array;
 };
 
+type StepViewportProps = {
+  url: string;
+  active?: boolean;
+  compact?: boolean;
+  label?: string;
+};
+
 let kernelPromise: Promise<OcctKernel> | null = null;
 const meshCache = new Map<string, Promise<StepMeshData>>();
-const thumbnailCache = new Map<string, Promise<string>>();
-let thumbnailQueue: Promise<void> = Promise.resolve();
 
 function getKernel() {
   if (!kernelPromise) {
@@ -81,7 +86,7 @@ function makeGeometry(mesh: StepMeshData) {
   return geometry;
 }
 
-function buildModel(mesh: StepMeshData, edgeOpacity = 0.38) {
+function buildModel(mesh: StepMeshData, compact: boolean) {
   const group = new THREE.Group();
   const geometry = makeGeometry(mesh);
 
@@ -92,39 +97,40 @@ function buildModel(mesh: StepMeshData, edgeOpacity = 0.38) {
     side: THREE.DoubleSide,
   });
 
-  const solid = new THREE.Mesh(geometry, material);
-  group.add(solid);
+  group.add(new THREE.Mesh(geometry, material));
 
   const edgesGeometry = new THREE.EdgesGeometry(geometry, 28);
-  const edges = new THREE.LineSegments(
+  group.add(new THREE.LineSegments(
     edgesGeometry,
     new THREE.LineBasicMaterial({
       color: 0x475569,
       transparent: true,
-      opacity: edgeOpacity,
+      opacity: compact ? 0.34 : 0.42,
     }),
-  );
-  group.add(edges);
+  ));
 
   return group;
 }
 
-function fitModel(model: THREE.Object3D, camera: THREE.PerspectiveCamera) {
+function fitModel(model: THREE.Object3D, camera: THREE.PerspectiveCamera, padding: number) {
   const box = new THREE.Box3().setFromObject(model);
-  const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
+  const sphere = box.getBoundingSphere(new THREE.Sphere());
 
   model.position.sub(center);
 
-  const maxDim = Math.max(size.x, size.y, size.z) || 1;
-  const distance = maxDim / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
+  const radius = Math.max(sphere.radius, 0.5);
+  const verticalFov = THREE.MathUtils.degToRad(camera.fov);
+  const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * Math.max(camera.aspect, 0.1));
+  const limitingFov = Math.max(Math.min(verticalFov, horizontalFov), 0.1);
+  const distance = (radius / Math.sin(limitingFov / 2)) * padding;
 
-  camera.near = Math.max(maxDim / 10000, 0.001);
-  camera.far = Math.max(maxDim * 1000, 1000);
-  camera.position.set(distance * 0.86, -distance * 1.18, distance * 0.78);
+  camera.near = Math.max(radius / 10000, 0.001);
+  camera.far = Math.max(radius * 10000, 1000);
+  camera.position.set(distance * 0.72, -distance * 0.96, distance * 0.68);
   camera.updateProjectionMatrix();
 
-  return maxDim;
+  return radius;
 }
 
 function disposeObject(root: THREE.Object3D) {
@@ -137,117 +143,15 @@ function disposeObject(root: THREE.Object3D) {
   });
 }
 
-function renderThumbnail(mesh: StepMeshData): string {
-  const width = 720;
-  const height = 430;
-
-  const renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    preserveDrawingBuffer: true,
-  });
-  renderer.setPixelRatio(1);
-  renderer.setSize(width, height, false);
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xf7f7f5);
-
-  const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100000);
-  camera.up.set(0, 0, 1);
-
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x94a3b8, 2.1));
-  const key = new THREE.DirectionalLight(0xffffff, 2.6);
-  key.position.set(2, -3, 4);
-  scene.add(key);
-
-  const model = buildModel(mesh, 0.34);
-  scene.add(model);
-  fitModel(model, camera);
-
-  renderer.render(scene, camera);
-  const image = renderer.domElement.toDataURL('image/png');
-
-  disposeObject(model);
-  renderer.dispose();
-  renderer.forceContextLoss();
-
-  return image;
-}
-
-function loadStepThumbnail(url: string): Promise<string> {
-  const cached = thumbnailCache.get(url);
-  if (cached) return cached;
-
-  const promise = loadStepMesh(url)
-    .then((mesh) => new Promise<string>((resolve, reject) => {
-      thumbnailQueue = thumbnailQueue
-        .then(() => {
-          try {
-            resolve(renderThumbnail(mesh));
-          } catch (error) {
-            reject(error);
-          }
-        })
-        .catch(() => undefined);
-    }))
-    .catch((error) => {
-      thumbnailCache.delete(url);
-      throw error;
-    });
-
-  thumbnailCache.set(url, promise);
-  return promise;
-}
-
-export function StepThumbnail({ url, label }: { url: string; label: string }) {
-  const [image, setImage] = useState('');
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let cancelled = false;
-    setImage('');
-    setError('');
-
-    loadStepThumbnail(url)
-      .then((dataUrl) => {
-        if (!cancelled) setImage(dataUrl);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'STEP preview failed');
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [url]);
-
-  if (error) {
-    return (
-      <div className="step-thumbnail error">
-        <span>3D preview unavailable</span>
-        <small>{error}</small>
-      </div>
-    );
-  }
-
-  if (!image) {
-    return (
-      <div className="step-thumbnail loading">
-        <span className="thumbnail-spinner" />
-        <small>Tessellating STEP…</small>
-      </div>
-    );
-  }
-
-  return <img className="step-thumbnail-image" src={image} alt={`${label} 3D preview`} />;
-}
-
-export default function StepViewer({ url }: { url: string }) {
+function StepViewport({ url, active = true, compact = false, label }: StepViewportProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState('Loading 3D geometry…');
   const [error, setError] = useState('');
+  const [snapshot, setSnapshot] = useState('');
 
   useEffect(() => {
+    if (!active) return;
+
     const element = canvasRef.current;
     if (!element) return;
 
@@ -255,29 +159,58 @@ export default function StepViewer({ url }: { url: string }) {
     let animationFrame = 0;
     let model: THREE.Group | null = null;
 
+    setError('');
+    setStatus('Loading 3D geometry…');
+
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf7f7f5);
 
-    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100000);
+    const camera = new THREE.PerspectiveCamera(compact ? 38 : 42, 1, 0.1, 100000);
     camera.up.set(0, 0, 1);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      preserveDrawingBuffer: compact,
+    });
+    renderer.setPixelRatio(compact ? 1 : Math.min(window.devicePixelRatio || 1, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    element.appendChild(renderer.domElement);
+    element.replaceChildren(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.screenSpacePanning = true;
+    controls.enableRotate = true;
+    controls.enablePan = true;
+    controls.enableZoom = true;
+    controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+    controls.mouseButtons.MIDDLE = THREE.MOUSE.DOLLY;
+    controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
+    controls.touches.ONE = THREE.TOUCH.ROTATE;
+    controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
 
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x64748b, 2.25));
-    const key = new THREE.DirectionalLight(0xffffff, 2.9);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x64748b, compact ? 2.05 : 2.25));
+
+    const key = new THREE.DirectionalLight(0xffffff, compact ? 2.5 : 2.9);
     key.position.set(2, -3, 4);
     scene.add(key);
-    const fill = new THREE.DirectionalLight(0xffffff, 1.1);
+
+    const fill = new THREE.DirectionalLight(0xffffff, compact ? 0.85 : 1.1);
     fill.position.set(-3, 2, 1);
     scene.add(fill);
+
+    function resize() {
+      if (!element) return;
+      const width = Math.max(element.clientWidth, 1);
+      const height = Math.max(element.clientHeight, 1);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height, false);
+    }
+
+    resize();
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(element);
 
     async function load() {
       try {
@@ -285,17 +218,29 @@ export default function StepViewer({ url }: { url: string }) {
         const mesh = await loadStepMesh(url);
         if (disposed) return;
 
-        model = buildModel(mesh, 0.42);
+        model = buildModel(mesh, compact);
         scene.add(model);
 
-        const maxDim = fitModel(model, camera);
+        const radius = fitModel(model, camera, compact ? 1.12 : 1.18);
         controls.target.set(0, 0, 0);
+        controls.minDistance = Math.max(radius * 0.02, 0.001);
+        controls.maxDistance = radius * 100;
         controls.update();
 
-        const axes = new THREE.AxesHelper(maxDim * 0.16);
-        scene.add(axes);
+        if (!compact) {
+          scene.add(new THREE.AxesHelper(radius * 0.28));
+        }
 
-        setError('');
+        renderer.render(scene, camera);
+
+        if (compact) {
+          try {
+            setSnapshot(renderer.domElement.toDataURL('image/png'));
+          } catch {
+            // Snapshot is only a fallback for off-screen cards.
+          }
+        }
+
         setStatus('');
       } catch (err) {
         if (!disposed) {
@@ -305,15 +250,6 @@ export default function StepViewer({ url }: { url: string }) {
       }
     }
 
-    function resize() {
-      if (!element) return;
-      const width = Math.max(element.clientWidth, 1);
-      const height = Math.max(element.clientHeight, 1);
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(width, height);
-    }
-
     function animate() {
       if (disposed) return;
       controls.update();
@@ -321,28 +257,68 @@ export default function StepViewer({ url }: { url: string }) {
       animationFrame = requestAnimationFrame(animate);
     }
 
-    window.addEventListener('resize', resize);
-    resize();
-    animate();
     load();
+    animate();
 
     return () => {
       disposed = true;
       cancelAnimationFrame(animationFrame);
-      window.removeEventListener('resize', resize);
+      resizeObserver.disconnect();
       controls.dispose();
       disposeObject(scene);
       renderer.dispose();
-      element.innerHTML = '';
+      renderer.forceContextLoss();
+      element.replaceChildren();
     };
-  }, [url]);
+  }, [url, active, compact]);
 
   return (
-    <div className="step-viewer">
+    <div
+      className={`step-viewport ${compact ? 'compact' : 'full'} ${active ? 'active' : 'paused'}`}
+      aria-label={label ? `Interactive 3D preview of ${label}` : 'Interactive STEP 3D preview'}
+    >
+      {(!active && snapshot) && <img className="step-paused-snapshot" src={snapshot} alt="" />}
       <div className="step-viewer-canvas" ref={canvasRef} />
-      <div className="viewer-hint">Drag to rotate · wheel to zoom · right-drag to pan</div>
-      {status && <div className="step-viewer-status">{status}</div>}
+      {compact ? (
+        <div className="step-card-hint">Drag rotate · wheel zoom · right-drag pan</div>
+      ) : (
+        <div className="viewer-hint">Drag to rotate · wheel to zoom · right-drag to pan</div>
+      )}
+      {active && status && <div className="step-viewer-status">{status}</div>}
       {error && <div className="step-viewer-error">{error}</div>}
+      {!active && !snapshot && !error && <div className="step-viewer-status">3D preview paused off-screen</div>}
     </div>
   );
+}
+
+export function StepCardViewer({ url, label }: { url: string; label: string }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    const element = rootRef.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setActive(entry.isIntersecting),
+      {
+        root: null,
+        rootMargin: '260px 0px',
+        threshold: 0.01,
+      },
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div className="step-card-viewer" ref={rootRef}>
+      <StepViewport url={url} label={label} active={active} compact />
+    </div>
+  );
+}
+
+export default function StepViewer({ url }: { url: string }) {
+  return <StepViewport url={url} active />;
 }
