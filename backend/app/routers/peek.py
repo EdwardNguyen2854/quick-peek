@@ -136,7 +136,7 @@ def preview_file(file_id: int, format: str):
     if preview.get("cache_file"):
         cache_path = Path(str(preview["cache_file"]))
         if cache_path.exists():
-            media = "image/svg+xml" if cache_path.suffix == ".svg" else "model/gltf-binary"
-            return FileResponse(cache_path, media_type=media)
+            if cache_path.suffix == ".svg":
+                return FileResponse(cache_path, media_type="image/svg+xml")
 
     raise HTTPException(status_code=404, detail="Preview is not available")
