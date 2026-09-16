@@ -15,18 +15,19 @@ export default function ViewerModal({ code, format, file, onClose }: { code: str
 
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
-      <div className="viewer-modal" onMouseDown={(e) => e.stopPropagation()}>
-        <header>
-          <div>
-            <p className="eyebrow">{code} · {format.toUpperCase()}</p>
+      <div className="viewer-modal" onMouseDown={(event) => event.stopPropagation()}>
+        <header className="viewer-header">
+          <div className="viewer-title">
+            <span>{code}</span>
             <h2>{file.filename}</h2>
-            {file.message && <span className="viewer-message">{file.message}</span>}
+            <p>{format.toUpperCase()} preview</p>
           </div>
-          <div className="modal-actions">
-            <a href={rawUrl} className="secondary small"><Download size={16}/> Download</a>
-            <button className="icon-button" onClick={onClose}><X size={20}/></button>
+          <div className="viewer-actions">
+            <a href={rawUrl} className="button subtle"><Download size={16} /> Download</a>
+            <button className="icon-button" onClick={onClose} aria-label="Close preview"><X size={19} /></button>
           </div>
         </header>
+
         <div className="viewer-body">
           {format === 'step' && <StepViewer url={previewUrl} />}
           {format === 'pdf' && <iframe className="pdf-frame" src={pdfViewUrl} title={file.filename} />}
