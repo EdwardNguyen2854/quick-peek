@@ -10,7 +10,7 @@ The app now focuses on the core workflow only:
 - search matching files
 - preview them in a grid
 - open a larger preview or download the source file
-- rotate / pan / zoom STEP previews tessellated directly in the browser
+- automatically render STEP previews in the results grid, then open the cached model for full rotate / pan / zoom
 
 There is no login, user/account management, admin panel, dashboard, roadmap, releases page, or permission system.
 
@@ -77,7 +77,7 @@ Quick Peek does not render the native STEP B-rep directly. The preview pipeline 
 STEP B-rep → OpenCascade WebAssembly tessellation → Three.js mesh
 ```
 
-STEP tessellation runs locally in the browser; no FreeCAD install or `QUICKPEEK_STEP_CONVERTER_CMD` is required. Use a modern browser with WebAssembly SIMD/tail-call support (current Chrome/Edge, Firefox, or Safari). This is intended for quick visual inspection and engineering checks. Use a CAD system when exact B-rep topology or precision geometry validation is required.
+Result cards begin loading STEP previews automatically after each search. The tessellated mesh is cached in the browser, so opening the same model in the large viewer does not parse it again. STEP tessellation runs locally in the browser; no FreeCAD install or `QUICKPEEK_STEP_CONVERTER_CMD` is required. Use a modern browser with WebAssembly SIMD/tail-call support (current Chrome/Edge, Firefox, or Safari). This is intended for quick visual inspection and engineering checks. Use a CAD system when exact B-rep topology or precision geometry validation is required.
 
 ## Windows executable
 
