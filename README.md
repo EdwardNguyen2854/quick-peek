@@ -40,7 +40,7 @@ Then open:
 http://127.0.0.1:5173
 ```
 
-The frontend runs on port `5173` and proxies `/api` requests to the backend on port `8000`.
+The frontend runs on port `5173` and proxies `/api` requests to the backend on port `8000`.\n\nThe normal dev launcher binds to localhost. `scripts\\run_lan_windows.bat` opts into LAN access explicitly; because authentication has been removed, use LAN mode only on a trusted network.
 
 ### macOS / Linux
 
