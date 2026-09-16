@@ -19,7 +19,7 @@ Do not reintroduce login, accounts, roles, permissions, admin pages, dashboards,
 backend/           FastAPI + SQLite file index (port 8000)
   app/
     main.py        app startup + optional embedded frontend
-    config.py      file roots, DB, preview converter settings
+    config.py      file roots, DB, document preview settings
     db.py          files table only
     file_index.py  index + search
     preview.py     preview generation
@@ -29,7 +29,6 @@ frontend/          React + Vite + TypeScript (port 5173)
   src/pages/       QuickPeekPage only
   src/components/  preview + folder picker components
 scripts/           dev + Windows build scripts
-tools/             FreeCAD STEP → tessellated GLB helper
 ```
 
 ## Development
@@ -53,7 +52,7 @@ Backend startup must use `backend/.venv` directly. If dependency installation fa
 STEP previews are tessellated geometry:
 
 ```
-STEP B-rep → tessellation → GLB → Three.js
+STEP B-rep → OpenCascade WebAssembly tessellation → Three.js
 ```
 
 They are for quick visual inspection and engineering checks, not authoritative B-rep/topology or precision validation.
