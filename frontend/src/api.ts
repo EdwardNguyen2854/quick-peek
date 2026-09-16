@@ -1,32 +1,18 @@
-import type { FolderBrowseResponse, FolderPreset, Format } from './types';
+import type { FolderBrowseResponse, Format } from './types';
 
-const defaultApiBase = typeof window !== 'undefined' ? `http://${window.location.hostname}:5175` : 'http://127.0.0.1:5175';
-export const API_BASE = import.meta.env.VITE_API_BASE ?? defaultApiBase;
+export const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '');
 
-export function getToken(): string | null {
-  return localStorage.getItem('quickpeek_token');
-}
-
-export function setToken(token: string | null) {
-  if (token) localStorage.setItem('quickpeek_token', token);
-  else localStorage.removeItem('quickpeek_token');
-}
-
-export function withToken(path: string): string {
-  const token = getToken();
-  const url = path.startsWith('http') ? new URL(path) : new URL(API_BASE + path);
-  if (token) url.searchParams.set('access_token', token);
-  return url.toString();
+export function apiUrl(path: string): string {
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${API_BASE}${path}`;
 }
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string> | undefined)
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(API_BASE + path, { ...options, headers });
+  const res = await fetch(apiUrl(path), { ...options, headers });
   if (!res.ok) {
     let message = res.statusText;
     try {
@@ -61,19 +47,4 @@ export async function searchFiles(format: Format, codes: string[], folderPath?: 
 export async function browseFolder(path?: string) {
   const query = path ? `?path=${encodeURIComponent(path)}` : '';
   return api<FolderBrowseResponse>(`/api/folders/browse${query}`);
-}
-
-export async function listFolderPresets() {
-  return api<{ presets: FolderPreset[] }>('/api/folders/presets');
-}
-
-export async function saveFolderPreset(name: string, path: string) {
-  return api<{ preset: FolderPreset }>('/api/folders/presets', {
-    method: 'POST',
-    body: JSON.stringify({ name, path })
-  });
-}
-
-export async function deleteFolderPreset(id: number) {
-  return api<{ ok: boolean }>(`/api/folders/presets/${id}`, { method: 'DELETE' });
 }
