@@ -1,19 +1,21 @@
+import { Boxes } from 'lucide-react';
 import QuickPeekPage from './pages/QuickPeekPage';
 
 export default function App() {
   return (
-    <div className="simple-shell">
-      <div className="supergraphic" />
-      <main className="main-panel simple-main">
-        <header className="page-header">
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="brand">
+          <span className="brand-mark"><Boxes size={17} strokeWidth={1.8} /></span>
           <div>
-            <p className="eyebrow">Fast batch file preview</p>
-            <h1>Quick Peek</h1>
-            <p className="muted app-subtitle">
-              Search by code, preview files, and open the full view.
-            </p>
+            <strong>Quick Peek</strong>
+            <span>Engineering file preview</span>
           </div>
-        </header>
+        </div>
+        <span className="topbar-status">Local workspace</span>
+      </header>
+
+      <main className="workspace">
         <QuickPeekPage />
       </main>
     </div>
