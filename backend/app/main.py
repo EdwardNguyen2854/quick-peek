@@ -12,13 +12,11 @@ from .file_index import reindex_files
 from .routers import folders, peek
 
 
-def _resource_path(relative_path: str) -> Path:
-    """Return a bundled resource path in source and PyInstaller builds."""
+def _static_path() -> Path:
+    """Return the generated frontend directory in source and PyInstaller builds."""
     if getattr(sys, "frozen", False):
-        base = Path(sys._MEIPASS)
-    else:
-        base = Path(__file__).resolve().parents[2]
-    return base / relative_path
+        return Path(sys._MEIPASS) / "app" / "static"
+    return Path(__file__).resolve().parent / "static"
 
 
 def create_app() -> FastAPI:
@@ -44,7 +42,7 @@ def create_app() -> FastAPI:
     def health():
         return {"ok": True, "name": "Quick Peek"}
 
-    static_path = _resource_path("app/static")
+    static_path = _static_path()
     if static_path.exists():
         app.mount("/", StaticFiles(directory=str(static_path), html=True), name="frontend")
 
