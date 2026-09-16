@@ -660,6 +660,7 @@ h2 {
 
 .match-badge {
   flex-shrink: 0;
+  border: 0;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1180,4 +1181,125 @@ h2 {
     margin-right: -12px;
     padding-right: 12px;
   }
+}
+
+
+.alternatives-popover {
+  position: absolute;
+  inset: 10px;
+  z-index: 7;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
+  background: rgba(255,255,255,.97);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+}
+
+.alternatives-header {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.alternatives-header > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.alternatives-header strong {
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.alternatives-header span,
+.alternatives-popover > small {
+  color: var(--text-faint);
+  font-size: 9px;
+}
+
+.alternatives-header button {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-faint);
+  display: grid;
+  place-items: center;
+}
+
+.alternatives-header button:hover {
+  background: var(--surface-strong);
+  color: var(--text);
+}
+
+.alternatives-list {
+  min-height: 0;
+  overflow: auto;
+  padding: 6px;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+
+.alternative-item {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  padding: 7px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+}
+
+.alternative-item:hover {
+  border-color: var(--line);
+  background: var(--surface-subtle);
+}
+
+.alternative-item > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.alternative-item strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.alternative-item em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-faint);
+  font-size: 9px;
+  font-style: normal;
+}
+
+.alternative-item > svg {
+  flex-shrink: 0;
+  color: var(--text-faint);
+}
+
+.alternatives-popover > small {
+  flex-shrink: 0;
+  border-top: 1px solid var(--line);
+  padding: 6px 9px;
 }
