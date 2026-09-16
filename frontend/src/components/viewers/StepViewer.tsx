@@ -67,10 +67,14 @@ export default function StepViewer({ url }: { url: string }) {
         const kernel = await getKernel();
         if (disposed) return;
 
+        // Let the loading state paint before the synchronous OCCT import/mesh pass.
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        if (disposed) return;
+
         shape = kernel.importStep(buffer);
         const meshData = kernel.tessellate(shape, {
-          linearDeflection: 0.1,
-          angularDeflection: 0.5,
+          linearDeflection: 0.02,
+          angularDeflection: 0.35,
           relative: true,
         });
         kernel.release(shape);
