@@ -230,7 +230,7 @@ export default function QuickPeekPage() {
         {results.length > 0 ? (
           <div
             className="results-grid"
-            style={{ gridTemplateColumns: `repeat(auto-fill, ${cardWidth}px)` }}
+            style={{ gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${cardWidth}px), ${cardWidth}px))` }}
           >
             {results.map((result) => (
               <PreviewCard
