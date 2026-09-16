@@ -1,5 +1,5 @@
 import { AlertCircle, CheckCircle2, Copy, Layers, Maximize2 } from 'lucide-react';
-import { withToken } from '../api';
+import { apiUrl } from '../api';
 import type { FileItem, Format, SearchResult } from '../types';
 
 function sizeLabel(bytes: number) {
@@ -25,19 +25,19 @@ export default function PreviewCard({ result, format, onOpen, previewHeight }: {
 
       <div className="preview-frame" style={previewHeight ? { minHeight: previewHeight } : undefined}>
         {file ? (
-          (file.preview_kind === 'glb' || file.preview_kind === 'obj') ? (
+          file.preview_kind === 'glb' ? (
             <div className="step-mini">
               <Layers size={34} />
-              <span>{file.preview_kind === 'obj' ? 'OBJ preview ready' : '3D preview ready'}</span>
+              <span>3D preview ready</span>
             </div>
           ) : file.preview_kind === 'pdf' ? (
             <iframe
               className="preview-pdf-card"
-              src={`${withToken(file.preview_url)}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH`}
+              src={`${apiUrl(file.preview_url)}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH`}
               title={`${result.code} PDF preview`}
             />
           ) : (
-            <img src={withToken(file.preview_url)} alt={`${result.code} preview`} />
+            <img src={apiUrl(file.preview_url)} alt={`${result.code} preview`} />
           )
         ) : (
           <div className="empty-preview">No preview</div>
