@@ -47,7 +47,8 @@ def _is_temp_file(name: str) -> bool:
 
 def _iter_files(roots: Iterable[Path]):
     for root in roots:
-        root.mkdir(parents=True, exist_ok=True)
+        if not root.exists() or not root.is_dir():
+            continue
         for dirpath, dirnames, filenames in os.walk(root):
             dirnames[:] = [
                 directory
@@ -115,7 +116,7 @@ def _upsert_file(conn, path: Path, root: Path, now: str) -> bool:
             parsed.compact_code,
             parsed.revision_raw,
             parsed.revision_rank,
-            "|".join(parsed.tokens),
+            "|" + "|".join(parsed.tokens) + "|" if parsed.tokens else "",
             parsed.folder_class,
             parsed.folder_priority,
             str(root.resolve()),
@@ -244,7 +245,7 @@ def _fetch_candidates(
             query.compact,
             query.compact,
             query.normalized,
-            query.compact + "%",
+            "%" + query.compact + "%",
             "%|" + query.compact + "|%",
         ]
 
