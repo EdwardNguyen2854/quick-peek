@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    exclude: ['occt-wasm'],
+  },
   server: {
     port: 5173,
     host: '127.0.0.1',
@@ -14,6 +17,7 @@ export default defineConfig({
     },
   },
   build: {
+    target: 'esnext',
     outDir: '../backend/app/static',
     emptyOutDir: true,
   }
