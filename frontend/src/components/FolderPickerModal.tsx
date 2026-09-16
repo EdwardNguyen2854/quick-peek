@@ -41,7 +41,7 @@ export default function FolderPickerModal({
         <header>
           <div>
             <h2>Browse working folder</h2>
-            <p className="muted">Choose the folder where Quick Peek should search STEP, PDF, or DXF files.</p>
+            <p className="muted">Choose the folder where Quick Peek should search for matching files.</p>
           </div>
           <button className="icon-button" onClick={onClose} aria-label="Close">
             <X size={18} />
