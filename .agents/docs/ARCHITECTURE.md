@@ -33,4 +33,4 @@ There is no authentication, account model, permissions layer, dashboard, admin A
 
 ## STEP
 
-STEP is converted externally to a tessellated GLB mesh, then rendered with Three.js.
+STEP is sent raw to the browser, tessellated locally with OpenCascade WebAssembly, and rendered directly with Three.js.
