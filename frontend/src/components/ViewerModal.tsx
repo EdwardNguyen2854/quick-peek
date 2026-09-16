@@ -1,6 +1,5 @@
-import { useEffect } from 'react';
 import { Download, X } from 'lucide-react';
-import { api, withToken } from '../api';
+import { apiUrl } from '../api';
 import type { FileItem, Format } from '../types';
 import StepViewer from './viewers/StepViewer';
 import PanZoomImage from './viewers/PanZoomImage';
@@ -11,12 +10,8 @@ import TextViewer from './viewers/TextViewer';
 import HtmlViewer from './viewers/HtmlViewer';
 
 export default function ViewerModal({ code, format, file, onClose }: { code: string; format: Format; file: FileItem; onClose: () => void }) {
-  useEffect(() => {
-    api('/api/usage/open', { method: 'POST', body: JSON.stringify({ file_id: file.file_id, format }) }).catch(() => null);
-  }, [file.file_id, format]);
-
-  const previewUrl = withToken(file.preview_url);
-  const rawUrl = withToken(file.raw_url);
+  const previewUrl = apiUrl(file.preview_url);
+  const rawUrl = apiUrl(file.raw_url);
   const pdfViewUrl = `${previewUrl}#toolbar=1&navpanes=0&scrollbar=1&page=1&view=FitH`;
 
   return (
