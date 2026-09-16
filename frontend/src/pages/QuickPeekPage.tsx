@@ -96,6 +96,8 @@ export default function QuickPeekPage() {
                 className={`format-tab ${format === item.id ? 'active' : ''}`}
                 onClick={() => selectFormat(item.id)}
                 type="button"
+                role="tab"
+                aria-selected={format === item.id}
                 title={item.exts}
               >
                 {item.label}
