@@ -1,38 +1,30 @@
-import { useEffect, useMemo, useState } from 'react';
-import { FileSearch, FolderOpen, Loader2, RotateCcw, Save, Trash2 } from 'lucide-react';
-import { deleteFolderPreset, listFolderPresets, normalizeCodes, saveFolderPreset, searchFiles } from '../api';
-import type { FileItem, FolderPreset, Format, SearchResult, User } from '../types';
+import { useMemo, useState } from 'react';
+import { FileSearch, FolderOpen, Loader2, RotateCcw } from 'lucide-react';
+import { normalizeCodes, searchFiles } from '../api';
+import type { FileItem, Format, SearchResult } from '../types';
 import PreviewCard from '../components/PreviewCard';
 import ViewerModal from '../components/ViewerModal';
 import FolderPickerModal from '../components/FolderPickerModal';
 
-const formats: { id: Format; label: string; exts: string; permission: string }[] = [
-  { id: 'step', label: 'STEP', exts: '.stp .step', permission: 'view_step' },
-  { id: 'pdf', label: 'PDF', exts: '.pdf', permission: 'view_pdf' },
-  { id: 'dxf', label: 'DXF', exts: '.dxf', permission: 'view_dxf' },
-  { id: 'doc', label: 'Word', exts: '.doc .docx', permission: 'view_doc' },
-  { id: 'xls', label: 'Excel', exts: '.xls .xlsx', permission: 'view_xls' },
-  { id: 'ppt', label: 'PowerPoint', exts: '.ppt .pptx', permission: 'view_ppt' },
-  { id: 'md', label: 'Markdown', exts: '.md', permission: 'view_md' },
-  { id: 'txt', label: 'Text', exts: '.txt', permission: 'view_txt' },
-  { id: 'html', label: 'HTML', exts: '.html .htm', permission: 'view_html' }
+const formats: { id: Format; label: string; exts: string }[] = [
+  { id: 'step', label: 'STEP', exts: '.stp .step' },
+  { id: 'pdf', label: 'PDF', exts: '.pdf' },
+  { id: 'dxf', label: 'DXF', exts: '.dxf' },
+  { id: 'doc', label: 'Word', exts: '.doc .docx' },
+  { id: 'xls', label: 'Excel', exts: '.xls .xlsx' },
+  { id: 'ppt', label: 'PowerPoint', exts: '.ppt .pptx' },
+  { id: 'md', label: 'Markdown', exts: '.md' },
+  { id: 'txt', label: 'Text', exts: '.txt' },
+  { id: 'html', label: 'HTML', exts: '.html .htm' }
 ];
 
-function canView(user: User, permission: string) {
-  return user.role === 'admin' || user.permissions.includes(permission as never);
-}
-
-export default function QuickPeekPage({ user }: { user: User }) {
-  const initialFormat = formats.find((f) => canView(user, f.permission))?.id ?? 'step';
-  const [format, setFormat] = useState<Format>(initialFormat);
-  const [codesText, setCodesText] = useState('1827009605\n573419\nSAMPLE');
+export default function QuickPeekPage() {
+  const [format, setFormat] = useState<Format>('step');
+  const [codesText, setCodesText] = useState('SAMPLE');
   const [workingFolder, setWorkingFolder] = useState(() => localStorage.getItem('quickpeek_working_folder') || '');
-  const [presetName, setPresetName] = useState('');
-  const [presets, setPresets] = useState<FolderPreset[]>([]);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [busy, setBusy] = useState(false);
-  const [folderBusy, setFolderBusy] = useState(false);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<{ code: string; file: FileItem } | null>(null);
   const [columns, setColumns] = useState(() => {
@@ -47,19 +39,6 @@ export default function QuickPeekPage({ user }: { user: User }) {
   const codes = useMemo(() => normalizeCodes(codesText), [codesText]);
   const found = results.reduce((sum, r) => sum + r.matches_count, 0);
 
-  async function loadPresets() {
-    try {
-      const res = await listFolderPresets();
-      setPresets(res.presets);
-    } catch {
-      // Presets are helpful, but the page should still work if this fails.
-    }
-  }
-
-  useEffect(() => {
-    loadPresets();
-  }, []);
-
   function applyWorkingFolder(path: string) {
     const clean = path.trim();
     setWorkingFolder(clean);
@@ -67,40 +46,10 @@ export default function QuickPeekPage({ user }: { user: User }) {
     else localStorage.removeItem('quickpeek_working_folder');
   }
 
-  async function saveCurrentFolder() {
-    if (!workingFolder.trim()) {
-      setError('Choose a working folder before saving a preset.');
-      return;
-    }
-    const name = (presetName.trim() || workingFolder.split(/[\\/]/).filter(Boolean).slice(-1)[0] || 'Working folder').trim();
-    setFolderBusy(true);
-    setError('');
-    try {
-      await saveFolderPreset(name, workingFolder);
-      setPresetName('');
-      await loadPresets();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Cannot save folder preset');
-    } finally {
-      setFolderBusy(false);
-    }
-  }
-
-  async function removePreset(id: number) {
-    setFolderBusy(true);
-    setError('');
-    try {
-      await deleteFolderPreset(id);
-      await loadPresets();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Cannot delete folder preset');
-    } finally {
-      setFolderBusy(false);
-    }
-  }
-
   async function runSearch() {
-    setBusy(true); setError(''); setResults([]);
+    setBusy(true);
+    setError('');
+    setResults([]);
     try {
       const res = await searchFiles(format, codes, workingFolder.trim()) as { results: SearchResult[] };
       setResults(res.results);
@@ -115,27 +64,23 @@ export default function QuickPeekPage({ user }: { user: User }) {
     <div className="stack">
       <section className="panel hero-panel">
         <div className="format-row">
-          {formats.map((f) => {
-            const disabled = !canView(user, f.permission);
-            return (
-              <button
-                key={f.id}
-                disabled={disabled}
-                className={`format-card ${format === f.id ? 'selected' : ''}`}
-                onClick={() => setFormat(f.id)}
-              >
-                <strong>{f.label}</strong>
-                <span>{disabled ? 'No permission' : f.exts}</span>
-              </button>
-            );
-          })}
+          {formats.map((f) => (
+            <button
+              key={f.id}
+              className={`format-card ${format === f.id ? 'selected' : ''}`}
+              onClick={() => setFormat(f.id)}
+            >
+              <strong>{f.label}</strong>
+              <span>{f.exts}</span>
+            </button>
+          ))}
         </div>
 
         <div className="folder-panel">
           <div className="folder-title-row">
             <div>
               <strong>Working folder</strong>
-              <p className="muted">Search only inside this folder. Leave empty to use the backend default roots.</p>
+              <p className="muted">Search only this folder, or leave empty to use the configured roots.</p>
             </div>
             <button className="secondary" onClick={() => setShowFolderPicker(true)}>
               <FolderOpen size={16} /> Browse
@@ -145,32 +90,10 @@ export default function QuickPeekPage({ user }: { user: User }) {
             <input
               value={workingFolder}
               onChange={(e) => applyWorkingFolder(e.target.value)}
-              placeholder="Example: C:\\local\\aventics\\task or \\\\server\\shared\\cad"
+              placeholder="Example: C:\\engineering\\cad or \\\\server\\shared\\cad"
             />
             <button className="secondary" onClick={() => applyWorkingFolder('')}>Use default roots</button>
           </div>
-          <div className="folder-save-row">
-            <input value={presetName} onChange={(e) => setPresetName(e.target.value)} placeholder="Preset name, e.g. Aventics task folder" />
-            <button className="primary" onClick={saveCurrentFolder} disabled={folderBusy || !workingFolder.trim()}>
-              {folderBusy ? <Loader2 className="spin" size={16} /> : <Save size={16} />}
-              Save folder
-            </button>
-          </div>
-          {presets.length > 0 && (
-            <div className="folder-presets">
-              {presets.map((preset) => (
-                <div className="folder-preset" key={preset.id}>
-                  <button onClick={() => applyWorkingFolder(preset.path)} title={preset.path}>
-                    <strong>{preset.name}</strong>
-                    <span>{preset.path}</span>
-                  </button>
-                  <button className="icon-button" onClick={() => removePreset(preset.id)} title="Delete preset">
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         <div className="input-grid">
@@ -182,7 +105,7 @@ export default function QuickPeekPage({ user }: { user: User }) {
             <div className="stat-card"><span>Codes</span><strong>{codes.length}</strong></div>
             <div className="stat-card"><span>Found files</span><strong>{found}</strong></div>
             <p>Search pattern: <code>*code-number*{format === 'step' ? '.stp/.step' : '.' + format}</code></p>
-            <p className="muted">Folder: <code>{workingFolder.trim() || 'Default backend roots'}</code></p>
+            <p className="muted">Folder: <code>{workingFolder.trim() || 'Default roots'}</code></p>
             <button className="primary" onClick={runSearch} disabled={busy || !codes.length}>
               {busy ? <Loader2 className="spin" size={18} /> : <FileSearch size={18} />}
               Search previews
