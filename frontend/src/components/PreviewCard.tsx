@@ -45,8 +45,16 @@ export default function PreviewCard({
               src={`${apiUrl(file.preview_url)}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH`}
               title={`${result.code} PDF preview`}
             />
-          ) : (
+          ) : file.preview_kind === 'html' || file.preview_kind === 'txt' ? (
+            <iframe
+              className="preview-document-card"
+              src={apiUrl(file.preview_url)}
+              title={`${result.code} document preview`}
+            />
+          ) : file.preview_kind === 'svg' ? (
             <img src={apiUrl(file.preview_url)} alt={`${result.code} preview`} />
+          ) : (
+            <div className="empty-preview">{file.message || 'Preview unavailable'}</div>
           )
         ) : (
           <div className="empty-preview">No preview available</div>
