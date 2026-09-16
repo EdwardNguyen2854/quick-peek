@@ -2,24 +2,40 @@
 
 ## Keep the app single-purpose
 
-Quick Peek is a local engineering utility, not an account platform. The UI is a single Quick Peek screen and the backend exposes only search/preview/folder endpoints.
+Quick Peek is a local engineering utility, not an account platform. The UI remains one focused lookup/preview workspace.
 
 ## No authentication layer
 
-Login, accounts, permissions, LDAP, API keys, admin controls, and dashboard analytics were removed to reduce setup and dependency complexity.
+Login, accounts, permissions, LDAP, API keys, admin controls, and dashboard analytics stay out of scope.
 
-## Automatic indexing
+## Index search, do not scan on Search
 
-Configured roots are indexed at startup and refreshed for default-root searches. A selected working folder is indexed when searched, so a manual admin reindex action is unnecessary.
+Configured roots are indexed at startup. A selected working folder is indexed when explicitly selected/refreshed. Pressing Search queries SQLite only, so search latency is separated from filesystem/network-share latency.
 
-## Same-origin API in development and builds
+## Deterministic search over opaque AI ranking
 
-Vite runs on port 5173 and proxies `/api` to the backend on port 8000. Production/bundled builds use the same relative `/api` URLs.
+Part-number lookup uses normalization, filename parsing, exact/token/prefix/substring rules, folder priority, revision metadata, and deterministic tie-breakers. No LLM or embedding ranking is used.
 
-## Python 3.14
+## Conservative fuzzy matching
 
-Use FastAPI/Pydantic versions that support Python 3.14. Backend startup must stop if dependency installation fails and must run uvicorn through the project venv.
+Fuzzy matching runs only when no strong deterministic candidate exists. It produces "Did you mean?" suggestions and never marks the suggestion as Found or automatically opens it.
+
+## Ranking precedence
+
+Match exactness outranks folder classification; folder classification outranks revision; revision outranks modified time. This prevents a newer archive/backup or fuzzy filename from silently displacing a cleaner current exact match.
+
+## Folder classification
+
+Common path terms classify files approximately as released/current/supplier/WIP/archive. Classification influences ranking but does not hide files.
+
+## Backward-compatible SQLite migration
+
+The existing `files` table is altered in place to add search metadata. Existing rows are retained and enriched by the next index refresh.
+
+## Same-origin API
+
+Vite proxies relative `/api` requests to the backend in development. Production/bundled builds use the same relative URLs.
 
 ## Browser-side STEP tessellation
 
-STEP files are not converted by a backend FreeCAD command. The browser loads the raw STEP file, imports it with OpenCascade WebAssembly, tessellates it, and renders the mesh with Three.js. This keeps the core app zero-config and removes the external converter dependency.
+STEP files are imported with OpenCascade WebAssembly in the browser and rendered with Three.js. No FreeCAD converter is required.
