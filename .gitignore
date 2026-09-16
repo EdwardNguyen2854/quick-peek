@@ -6,3 +6,4 @@ backend/cache/previews/*
 !.gitkeep
 .env
 .DS_Store
+backend/app/static/
