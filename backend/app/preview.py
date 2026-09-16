@@ -44,8 +44,8 @@ def ensure_preview(file_row: dict, file_format: str) -> Dict[str, str | bool | N
                     return {"kind": "glb", "ready": True, "message": None, "cache_file": str(out)}
                 return {"kind": "step", "ready": False, "message": "Converter ran but did not create GLB output.", "cache_file": None}
             except Exception as exc:
-                return {"kind": "step", "ready": False, "message": f"STEP found, but preview conversion failed: {exc}", "cache_file": None}
-        return {"kind": "step", "ready": False, "message": "STEP file found. Configure QUICKPEEK_STEP_CONVERTER_CMD to generate browser 3D GLB previews.", "cache_file": None}
+                return {"kind": "step", "ready": False, "message": f"STEP found, but tessellated preview conversion failed: {exc}", "cache_file": None}
+        return {"kind": "step", "ready": False, "message": "STEP file found. Configure QUICKPEEK_STEP_CONVERTER_CMD to tessellate the geometry and generate a browser 3D GLB preview.", "cache_file": None}
     if file_format in {"doc", "xls", "ppt"}:
         # Check file size before conversion
         try:
