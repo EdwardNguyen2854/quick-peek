@@ -37,7 +37,6 @@ for item in raw_roots.split(";") if ";" in raw_roots else raw_roots.split(","):
         path = BASE_DIR / path
     FILE_ROOTS.append(path)
 
-STEP_CONVERTER_CMD = _get("QUICKPEEK_STEP_CONVERTER_CMD", "").strip()
 LIBREOFFICE_CMD = _get("QUICKPEEK_LIBREOFFICE_CMD", "").strip()
 MAX_CONVERT_SIZE_MB = int(_get("QUICKPEEK_MAX_CONVERT_SIZE_MB", "100"))
 

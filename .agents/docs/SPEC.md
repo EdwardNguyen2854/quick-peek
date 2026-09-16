@@ -13,7 +13,7 @@ Find engineering files quickly by code and inspect them without opening heavywei
 - large preview modal
 - source download
 - STEP/STP, PDF, DXF, and supported document formats
-- tessellated STEP 3D viewing when a STEP → GLB converter is configured
+- zero-config tessellated STEP 3D viewing in the browser
 
 ## Out of scope
 

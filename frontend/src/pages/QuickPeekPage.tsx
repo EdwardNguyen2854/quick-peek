@@ -20,7 +20,7 @@ const formats: { id: Format; label: string; exts: string }[] = [
 
 export default function QuickPeekPage() {
   const [format, setFormat] = useState<Format>('step');
-  const [codesText, setCodesText] = useState('SAMPLE');
+  const [codesText, setCodesText] = useState('');
   const [workingFolder, setWorkingFolder] = useState(() => localStorage.getItem('quickpeek_working_folder') || '');
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);

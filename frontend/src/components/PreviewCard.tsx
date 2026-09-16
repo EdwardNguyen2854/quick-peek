@@ -25,7 +25,7 @@ export default function PreviewCard({ result, format, onOpen, previewHeight }: {
 
       <div className="preview-frame" style={previewHeight ? { minHeight: previewHeight } : undefined}>
         {file ? (
-          file.preview_kind === 'glb' ? (
+          file.preview_kind === 'step' ? (
             <div className="step-mini">
               <Layers size={34} />
               <span>3D preview ready</span>

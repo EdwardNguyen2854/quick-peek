@@ -19,3 +19,7 @@ Vite runs on port 5173 and proxies `/api` to the backend on port 8000. Productio
 ## Python 3.14
 
 Use FastAPI/Pydantic versions that support Python 3.14. Backend startup must stop if dependency installation fails and must run uvicorn through the project venv.
+
+## Browser-side STEP tessellation
+
+STEP files are not converted by a backend FreeCAD command. The browser loads the raw STEP file, imports it with OpenCascade WebAssembly, tessellates it, and renders the mesh with Three.js. This keeps the core app zero-config and removes the external converter dependency.

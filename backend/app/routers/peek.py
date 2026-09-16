@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse
 
 from ..db import get_conn, row_to_dict
 from ..file_index import index_folder, reindex_files, search_index
@@ -121,6 +121,8 @@ def preview_file(file_id: int, format: str):
     item = _get_file(file_id)
     preview = ensure_preview(item, format)
 
+    if preview["kind"] == "step":
+        return FileResponse(Path(item["full_path"]), media_type="application/step")
     if preview["kind"] == "pdf":
         return FileResponse(Path(item["full_path"]), media_type="application/pdf")
     if preview["kind"] == "txt":
@@ -134,18 +136,7 @@ def preview_file(file_id: int, format: str):
     if preview.get("cache_file"):
         cache_path = Path(str(preview["cache_file"]))
         if cache_path.exists():
-            media = "image/svg+xml" if cache_path.suffix == ".svg" else "model/gltf-binary"
-            return FileResponse(cache_path, media_type=media)
+            if cache_path.suffix == ".svg":
+                return FileResponse(cache_path, media_type="image/svg+xml")
 
-    name = item["filename"]
-    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
-      <rect width="600" height="400" fill="white"/>
-      <rect x="24" y="24" width="552" height="352" rx="18" fill="#f9fafb" stroke="#e5e7eb"/>
-      <text x="48" y="78" font-family="Arial" font-size="22" font-weight="700" fill="#111827">STEP file found</text>
-      <text x="48" y="118" font-family="Arial" font-size="14" fill="#4b5563">{name}</text>
-      <text x="48" y="162" font-family="Arial" font-size="13" fill="#6b7280">Configure STEP tessellation → GLB for browser 3D preview.</text>
-      <path d="M265 250 L340 210 L415 250 L340 292 Z" fill="#fff" stroke="#111827"/>
-      <path d="M265 250 L265 175 L340 135 L340 210 Z" fill="#f3f4f6" stroke="#111827"/>
-      <path d="M340 210 L340 135 L415 175 L415 250 Z" fill="#e5e7eb" stroke="#111827"/>
-    </svg>"""
-    return Response(svg, media_type="image/svg+xml")
+    raise HTTPException(status_code=404, detail="Preview is not available")

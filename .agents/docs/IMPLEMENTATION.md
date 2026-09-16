@@ -27,3 +27,7 @@ SQLite stores the file index only.
 ## Build
 
 The Vite build outputs to `backend/app/static`. The PyInstaller spec bundles that directory as `app/static`.
+
+## STEP viewer
+
+`StepViewer.tsx` loads the raw STEP preview URL and uses `occt-wasm` to import and tessellate the model in the browser. Vite excludes `occt-wasm` from dependency pre-bundling and targets ESNext so the WebAssembly runtime is emitted correctly.

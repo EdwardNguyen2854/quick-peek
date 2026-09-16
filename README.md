@@ -10,7 +10,7 @@ The app now focuses on the core workflow only:
 - search matching files
 - preview them in a grid
 - open a larger preview or download the source file
-- rotate / pan / zoom tessellated STEP previews when STEP → GLB conversion is configured
+- rotate / pan / zoom STEP previews tessellated directly in the browser
 
 There is no login, user/account management, admin panel, dashboard, roadmap, releases page, or permission system.
 
@@ -40,7 +40,9 @@ Then open:
 http://127.0.0.1:5173
 ```
 
-The frontend runs on port `5173` and proxies `/api` requests to the backend on port `8000`.\n\nThe normal dev launcher binds to localhost. `scripts\\run_lan_windows.bat` opts into LAN access explicitly; because authentication has been removed, use LAN mode only on a trusted network.
+The frontend runs on port `5173` and proxies `/api` requests to the backend on port `8000`.
+
+The normal dev launcher binds to localhost. `scripts\\run_lan_windows.bat` opts into LAN access explicitly; because authentication has been removed, use LAN mode only on a trusted network.
 
 ### macOS / Linux
 
@@ -64,7 +66,6 @@ Copy `backend/.env.example` to `backend/.env` if needed.
 |---|---|---|
 | `QUICKPEEK_FILE_ROOTS` | `./data/files` | Folders indexed at startup |
 | `QUICKPEEK_DB_PATH` | `./data/quickpeek.sqlite3` | Local SQLite file index |
-| `QUICKPEEK_STEP_CONVERTER_CMD` | empty | STEP → tessellated GLB converter command |
 | `QUICKPEEK_LIBREOFFICE_CMD` | auto/empty | Optional Office conversion command |
 | `QUICKPEEK_MAX_CONVERT_SIZE_MB` | `100` | Maximum document conversion size |
 
@@ -73,10 +74,10 @@ Copy `backend/.env.example` to `backend/.env` if needed.
 Quick Peek does not render the native STEP B-rep directly. The preview pipeline is:
 
 ```
-STEP B-rep → tessellation → GLB mesh → Three.js
+STEP B-rep → OpenCascade WebAssembly tessellation → Three.js mesh
 ```
 
-This is intended for quick visual inspection and engineering checks. Use a CAD system when exact B-rep topology or precision geometry validation is required.
+STEP tessellation runs locally in the browser; no FreeCAD install or `QUICKPEEK_STEP_CONVERTER_CMD` is required. Use a modern browser with WebAssembly SIMD/tail-call support (current Chrome/Edge, Firefox, or Safari). This is intended for quick visual inspection and engineering checks. Use a CAD system when exact B-rep topology or precision geometry validation is required.
 
 ## Windows executable
 

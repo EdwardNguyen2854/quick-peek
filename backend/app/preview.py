@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import hashlib
-import shlex
-import subprocess
 from pathlib import Path
 from typing import Dict
 
-from .config import MAX_CONVERT_SIZE_MB, PREVIEW_DIR, STEP_CONVERTER_CMD
+from .config import MAX_CONVERT_SIZE_MB, PREVIEW_DIR
 from .converters.markdown_to_html import markdown_to_html
 from .converters.office_to_html import office_to_html
 from .dxf_preview import dxf_to_svg
@@ -33,19 +31,8 @@ def ensure_preview(file_row: dict, file_format: str) -> Dict[str, str | bool | N
                 return {"kind": "svg", "ready": False, "message": f"DXF preview failed: {exc}", "cache_file": str(out)}
         return {"kind": "svg", "ready": True, "message": None, "cache_file": str(out)}
     if file_format == "step":
-        out = PREVIEW_DIR / f"{key}.glb"
-        if out.exists():
-            return {"kind": "glb", "ready": True, "message": None, "cache_file": str(out)}
-        if STEP_CONVERTER_CMD:
-            try:
-                cmd = STEP_CONVERTER_CMD.format(input=str(path), output=str(out))
-                subprocess.run(shlex.split(cmd), check=True, timeout=180)
-                if out.exists() and out.stat().st_size > 0:
-                    return {"kind": "glb", "ready": True, "message": None, "cache_file": str(out)}
-                return {"kind": "step", "ready": False, "message": "Converter ran but did not create GLB output.", "cache_file": None}
-            except Exception as exc:
-                return {"kind": "step", "ready": False, "message": f"STEP found, but tessellated preview conversion failed: {exc}", "cache_file": None}
-        return {"kind": "step", "ready": False, "message": "STEP file found. Configure QUICKPEEK_STEP_CONVERTER_CMD to tessellate the geometry and generate a browser 3D GLB preview.", "cache_file": None}
+        # STEP is tessellated in the browser with OpenCascade WebAssembly.
+        return {"kind": "step", "ready": True, "message": None, "cache_file": None}
     if file_format in {"doc", "xls", "ppt"}:
         # Check file size before conversion
         try:
