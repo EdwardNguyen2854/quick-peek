@@ -70,6 +70,23 @@ def _upsert_file(conn, path: Path, root: Path, now: str) -> bool:
         return False
 
     full_path = str(path.resolve())
+    existing = conn.execute(
+        "SELECT size_bytes, modified_at, file_format FROM files WHERE full_path = ?",
+        (full_path,),
+    ).fetchone()
+
+    if (
+        existing
+        and int(existing["size_bytes"]) == int(stat.st_size)
+        and float(existing["modified_at"]) == float(stat.st_mtime)
+        and str(existing["file_format"] or "")
+    ):
+        conn.execute(
+            "UPDATE files SET indexed_at = ?, root_path = ? WHERE full_path = ?",
+            (now, str(root.resolve()), full_path),
+        )
+        return True
+
     parsed = parse_filename(path.name, full_path)
     file_format = FORMAT_BY_EXTENSION.get(path.suffix.lower(), "")
 
@@ -262,13 +279,6 @@ def _fetch_candidates(
     ).fetchall()
 
     return [dict(row) for row in rows]
-
-
-def _token_match_fixup(query, rows: list[dict]) -> None:
-    # Tokens are stored pipe-delimited without leading/trailing delimiters.
-    # Candidate SQL intentionally remains cheap; this function handles exact token
-    # matches that the LIKE shortcut may not retrieve at string boundaries.
-    del query, rows
 
 
 def search_index(
