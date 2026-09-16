@@ -21,7 +21,7 @@ const meshCache = new Map<string, Promise<StepMeshData>>();
 
 function getKernel() {
   if (!kernelPromise) {
-    kernelPromise = OcctKernel.init().catch((error) => {
+    kernelPromise = OcctKernel.init().catch((error: unknown) => {
       kernelPromise = null;
       throw error;
     });

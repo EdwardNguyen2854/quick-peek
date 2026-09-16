@@ -1,6 +1,6 @@
 import { Download, X } from 'lucide-react';
 import { apiUrl } from '../api';
-import type { FileItem, Format } from '../types';
+import type { FileFormat, FileItem } from '../types';
 import StepViewer from './viewers/StepViewer';
 import DxfVectorViewer from './viewers/DxfVectorViewer';
 import DocViewer from './viewers/DocViewer';
@@ -8,7 +8,7 @@ import MarkdownViewer from './viewers/MarkdownViewer';
 import TextViewer from './viewers/TextViewer';
 import HtmlViewer from './viewers/HtmlViewer';
 
-export default function ViewerModal({ code, format, file, onClose }: { code: string; format: Format; file: FileItem; onClose: () => void }) {
+export default function ViewerModal({ code, format, file, onClose }: { code: string; format: FileFormat; file: FileItem; onClose: () => void }) {
   const previewUrl = apiUrl(file.preview_url);
   const rawUrl = apiUrl(file.raw_url);
   const pdfViewUrl = `${previewUrl}#toolbar=1&navpanes=0&scrollbar=1&page=1&view=FitH`;

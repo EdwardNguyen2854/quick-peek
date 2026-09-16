@@ -27,7 +27,7 @@ def create_app() -> FastAPI:
         # The app should still start if a configured drive is offline.
         pass
 
-    app = FastAPI(title="Quick Peek API", version="0.5.0")
+    app = FastAPI(title="Quick Peek API", version="0.8.0")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],

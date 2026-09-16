@@ -2,33 +2,48 @@
 
 ## Product scope
 
-Quick Peek is intentionally a small local file-search and preview app.
+Quick Peek is intentionally a small local engineering file-search and preview app.
 
-Core workflow only:
-1. choose a format
-2. optionally choose a working folder
+Core workflow:
+1. choose All files or a format
+2. optionally choose an indexed working folder
 3. paste codes / part numbers
-4. search matching files
-5. preview, open, or download
+4. search the SQLite index
+5. review recommended matches, alternatives, suggestions, and missing codes
+6. preview, open, or download
 
 Do not reintroduce login, accounts, roles, permissions, admin pages, dashboards, roadmap pages, releases pages, API keys, LDAP, or usage analytics unless explicitly requested.
+
+## Search invariants
+
+- Search itself must not recursively scan the filesystem.
+- Exact/normalized deterministic matches outrank fuzzy candidates.
+- Fuzzy candidates are suggestions only.
+- Preserve input order.
+- Keep ranking logic in the backend.
+- Explain recommendation reasons in the API/UI.
+- Prefer released/current locations over archive/WIP according to explicit ranking rules.
+- Existing SQLite databases must migrate in place.
 
 ## Repo structure
 
 ```
-backend/           FastAPI + SQLite file index (port 8000)
+backend/
   app/
-    main.py        app startup + optional embedded frontend
-    config.py      file roots, DB, document preview settings
-    db.py          files table only
-    file_index.py  index + search
-    preview.py     preview generation
-    dxf_preview.py DXF → SVG
-    routers/       peek, folders
-frontend/          React + Vite + TypeScript (port 5173)
-  src/pages/       QuickPeekPage only
-  src/components/  preview + folder picker components
-scripts/           dev + Windows build scripts
+    main.py
+    config.py
+    db.py             SQLite schema + index state
+    file_index.py     filesystem indexing + candidate retrieval
+    search_engine.py  normalization, parsing, ranking, fuzzy suggestions
+    preview.py
+    dxf_preview.py
+    routers/          peek, folders
+  tests/              search + migration regression tests
+frontend/
+  src/pages/          QuickPeekPage only
+  src/components/     preview + folder picker components
+.github/workflows/    CI
+scripts/              dev + Windows build scripts
 ```
 
 ## Development
@@ -45,14 +60,10 @@ scripts/run_dev_mac_linux.sh
 
 The Vite dev server proxies `/api` to `http://127.0.0.1:8000`.
 
-Backend startup must use `backend/.venv` directly. If dependency installation fails, do not start uvicorn with a global interpreter.
-
 ## STEP preview
-
-STEP previews are tessellated geometry:
 
 ```
 STEP B-rep → OpenCascade WebAssembly tessellation → Three.js
 ```
 
-They are for quick visual inspection and engineering checks, not authoritative B-rep/topology or precision validation.
+STEP previews are for quick visual inspection, not authoritative geometry validation.
