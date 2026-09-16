@@ -210,3 +210,8 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   z-index: 10;
   font-weight: 500;
 }
+
+/* Simple single-screen app shell */
+.simple-shell { min-height: 100vh; }
+.simple-main { margin: 0 auto; }
+.app-subtitle { margin: 8px 0 0; max-width: 640px; }
