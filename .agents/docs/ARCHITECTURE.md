@@ -6,7 +6,7 @@
 
 ## Overview
 
-The Quick Peek document preview feature extends the existing file preview pipeline to handle document formats (Office documents, Markdown, plain text, HTML) alongside the already-supported CAD formats (STEP, DXF, OBJ, PDF).
+The Quick Peek document preview feature extends the existing file preview pipeline to handle document formats (Office documents, Markdown, plain text, HTML) alongside the already-supported CAD formats (STEP, DXF, PDF).
 
 The system follows a **search → preview → serve** pipeline:
 
@@ -107,7 +107,7 @@ backend/app/converters/
 ```
 backend/cache/previews/
 ├── {sha256_hash}.svg   # DXF renders
-├── {sha256_hash}.glb   # STEP → GLB conversions
+├── {sha256_hash}.glb   # tessellated STEP → GLB conversions
 ├── {sha256_hash}.html  # Office → HTML conversions
 └── {sha256_hash}.html  # Markdown → HTML conversions
 ```
@@ -147,7 +147,7 @@ The key is a 24-character SHA-256 hash of the **resolved absolute path + mtime +
 ```python
 DEFAULT_USER_PERMISSIONS = [
     "use_quick_peek",
-    "view_step", "view_pdf", "view_dxf", "view_obj",
+    "view_step", "view_pdf", "view_dxf",
     "view_doc", "view_xls", "view_ppt", "view_md", "view_txt", "view_html"
 ]
 ADMIN_PERMISSIONS = DEFAULT_USER_PERMISSIONS + [
@@ -162,7 +162,6 @@ FORMAT_PERMISSION = {
     "step": "view_step",
     "pdf": "view_pdf",
     "dxf": "view_dxf",
-    "obj": "view_obj",
     "doc": "view_doc",   # Added for document preview
     "xls": "view_xls",   # Added for document preview
     "ppt": "view_ppt",   # Added for document preview
@@ -225,7 +224,6 @@ Returns the preview content for a file.
 - `html`: Returns raw HTML file with `text/html`
 - `dxf`: Returns cached SVG from `cache/previews/{key}.svg`
 - `step` (no converter): Returns placeholder SVG with configuration message
-- `obj`: Returns `FileResponse` with `media_type="model/obj"` (inline)
 
 ### `GET /api/files/{file_id}/raw`
 
@@ -310,7 +308,7 @@ Browser renders HTML in iframe
 | Package | Purpose |
 |---------|---------|
 | `react` | UI framework |
-| `three` | 3D rendering (STEP/OBJ viewers) |
+| `three` | 3D rendering (tessellated STEP viewer) |
 | `lucide-react` | Icons |
 
 ### System Requirements
@@ -336,7 +334,6 @@ SUPPORTED_FORMATS = {
     "step": [".stp", ".step"],
     "pdf":  [".pdf"],
     "dxf":  [".dxf"],
-    "obj":  [".obj"],
     "doc":  [".doc", ".docx"],
     "xls":  [".xls", ".xlsx"],
     "ppt":  [".ppt", ".pptx"],
