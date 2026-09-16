@@ -32,7 +32,7 @@ class UserUpdate(BaseModel):
 
 
 class SearchRequest(BaseModel):
-    format: Literal["step", "pdf", "dxf", "obj", "doc", "xls", "ppt", "md", "txt", "html"]
+    format: Literal["step", "pdf", "dxf", "doc", "xls", "ppt", "md", "txt", "html"]
     codes: List[str]
     folder_path: Optional[str] = None
 
@@ -44,7 +44,7 @@ class FolderPresetCreate(BaseModel):
 
 class OpenLogRequest(BaseModel):
     file_id: int
-    format: Literal["step", "pdf", "dxf", "obj", "doc", "xls", "ppt", "md", "txt", "html"]
+    format: Literal["step", "pdf", "dxf", "doc", "xls", "ppt", "md", "txt", "html"]
 
 
 # ── v0.4 / Phase 2: Auth & Admin schemas ────────────────────────────────────
