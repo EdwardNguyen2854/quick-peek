@@ -50,11 +50,11 @@ export default function FolderPickerModal({
 
         <div className="folder-path-row">
           <input value={pathInput} onChange={(e) => setPathInput(e.target.value)} placeholder="C:\\local\\aventics\\task" />
-          <button className="secondary" onClick={() => load(pathInput)} disabled={busy}>
+          <button className="button subtle" onClick={() => load(pathInput)} disabled={busy}>
             {busy ? <Loader2 className="spin" size={16} /> : <Folder size={16} />}
             Open
           </button>
-          <button className="primary" onClick={() => { onSelect(pathInput); onClose(); }} disabled={!pathInput.trim()}>
+          <button className="button primary" onClick={() => { onSelect(pathInput); onClose(); }} disabled={!pathInput.trim()}>
             Use this folder
           </button>
         </div>
@@ -76,7 +76,7 @@ export default function FolderPickerModal({
             <div className="folder-current">
               <strong>{data?.path || pathInput || 'Loading...'}</strong>
               {data?.parent && (
-                <button className="secondary small" onClick={() => load(data.parent || undefined)}>
+                <button className="button subtle" onClick={() => load(data.parent || undefined)}>
                   <ChevronLeft size={15} /> Parent
                 </button>
               )}
