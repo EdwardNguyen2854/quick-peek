@@ -6,7 +6,12 @@ import { OcctKernel } from 'occt-wasm';
 let kernelPromise: Promise<OcctKernel> | null = null;
 
 function getKernel() {
-  if (!kernelPromise) kernelPromise = OcctKernel.init();
+  if (!kernelPromise) {
+    kernelPromise = OcctKernel.init().catch((err) => {
+      kernelPromise = null;
+      throw err;
+    });
+  }
   return kernelPromise;
 }
 
@@ -118,7 +123,7 @@ export default function StepViewer({ url }: { url: string }) {
         controls.update();
 
         const axes = new THREE.AxesHelper(maxDim * 0.2);
-        model.add(axes);
+        scene.add(axes);
 
         if (!disposed) {
           setStatus('');
@@ -177,7 +182,8 @@ export default function StepViewer({ url }: { url: string }) {
   }, [url]);
 
   return (
-    <div className="step-viewer" ref={ref}>
+    <div className="step-viewer">
+      <div className="step-viewer-canvas" ref={ref} />
       <div className="viewer-hint">Tessellated STEP · rotate · pan · zoom</div>
       {status && <div className="step-viewer-status">{status}</div>}
       {error && <div className="step-viewer-error">{error}</div>}
