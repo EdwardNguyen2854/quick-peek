@@ -8,16 +8,16 @@
 
 </div>
 
-Internal web app for fast batch preview of **STEP/STP**, **PDF**, **DXF**, and **OBJ** files. Designed for CAD teams — paste a list of codes, preview files instantly without opening CAD software.
+Internal web app for fast batch preview of **STEP/STP**, **PDF**, and **DXF** files. Designed for CAD teams — paste a list of codes, preview files instantly without opening CAD software.
 
 ## Features
 
-- **Multi-format preview grid** — STEP, PDF, DXF, OBJ (one format at a time)
+- **Multi-format preview grid** — STEP, PDF, DXF (one format at a time)
 - **Batch code search** — paste many codes at once; glob-style filename matching
 - **Adjustable grid** — column count (1–5) and preview height slider
 - **Server-side folder browsing** with named presets per user
 - **Full-screen preview modal** with pan/zoom for images and PDFs
-- **3D rotate/pan/zoom** for OBJ (STEP via GLB converter)
+- **3D rotate/pan/zoom** for tessellated STEP geometry via GLB conversion
 - **User auth** with role-based permissions per format
 - **Admin panel** — user management, file reindexing, usage dashboard
 - **Info & Roadmap pages** — project docs and planned features
@@ -92,17 +92,18 @@ After changing `QUICKPEEK_FILE_ROOTS`, go to **Admin → Reindex files**.
 | STEP | `.stp`, `.step` | Placeholder (GLB conversion configurable) |
 | PDF | `.pdf` | Embedded iframe (PDF.js) |
 | DXF | `.dxf` | SVG vector render |
-| OBJ | `.obj` | Three.js 3D viewer |
 
 ## STEP Preview (3D)
 
-Three.js handles OBJ/GLB natively. STEP is CAD B-rep data requiring a converter:
+Browsers do not render native STEP B-rep geometry directly. Quick Peek uses a converter to tessellate the STEP model and export a GLB mesh for Three.js:
 
 ```
-STEP → QUICKPEEK_STEP_CONVERTER_CMD → GLB → Three.js
+STEP B-rep → tessellation → GLB mesh → Three.js
 ```
 
-Enable by setting `QUICKPEEK_STEP_CONVERTER_CMD`. Without it, STEP shows a placeholder SVG. A FreeCAD helper is in `tools/freecad_step_to_glb.py`.
+This viewer is designed for **quick visual inspection and engineering checks**. Because it renders tessellated geometry rather than the native B-rep, use a CAD system when you need authoritative geometry interrogation, exact topology, or precision validation.
+
+Enable conversion by setting `QUICKPEEK_STEP_CONVERTER_CMD`. Without it, STEP shows a placeholder SVG. A FreeCAD helper is in `tools/freecad_step_to_glb.py`.
 
 ## License
 
