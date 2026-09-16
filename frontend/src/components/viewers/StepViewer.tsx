@@ -315,20 +315,28 @@ function StepViewport({ url, active = true, compact = false, label }: StepViewpo
   );
 }
 
-export function StepCardViewer({ url, label }: { url: string; label: string }) {
+export function StepCardViewer({
+  url,
+  label,
+  suspended = false,
+}: {
+  url: string;
+  label: string;
+  suspended?: boolean;
+}) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(false);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const element = rootRef.current;
     if (!element) return;
 
     const observer = new IntersectionObserver(
-      ([entry]) => setActive(entry.isIntersecting),
+      ([entry]) => setVisible(entry.isIntersecting && entry.intersectionRatio >= 0.05),
       {
         root: null,
-        rootMargin: '260px 0px',
-        threshold: 0.01,
+        rootMargin: '0px',
+        threshold: [0, 0.05, 0.25],
       },
     );
 
@@ -338,7 +346,7 @@ export function StepCardViewer({ url, label }: { url: string; label: string }) {
 
   return (
     <div className="step-card-viewer" ref={rootRef}>
-      <StepViewport url={url} label={label} active={active} compact />
+      <StepViewport url={url} label={label} active={visible && !suspended} compact />
     </div>
   );
 }
