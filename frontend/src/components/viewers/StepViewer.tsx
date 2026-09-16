@@ -206,6 +206,14 @@ function StepViewport({ url, active = true, compact = false, label }: StepViewpo
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height, false);
+
+      if (model) {
+        const radius = fitModel(model, camera, compact ? 1.12 : 1.18);
+        controls.target.set(0, 0, 0);
+        controls.minDistance = Math.max(radius * 0.02, 0.001);
+        controls.maxDistance = radius * 100;
+        controls.update();
+      }
     }
 
     resize();
