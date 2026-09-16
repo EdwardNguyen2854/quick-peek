@@ -13,6 +13,6 @@ echo Frontend will listen on: http://0.0.0.0:5173
 echo.
 echo Other users should open: http://%IP%:5173
 echo.
-start "Quick Peek API" cmd /k "cd /d %ROOT%\backend && run_backend.bat"
-start "Quick Peek UI" cmd /k "cd /d %ROOT%\frontend && npm install && npm run dev"
+start "Quick Peek API" cmd /k "cd /d %ROOT%\backend && set QUICKPEEK_HOST=0.0.0.0 && run_backend.bat"
+start "Quick Peek UI" cmd /k "cd /d %ROOT%\frontend && npm install && npm run dev -- --host 0.0.0.0"
 pause
