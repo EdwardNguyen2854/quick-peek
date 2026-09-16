@@ -1,27 +1,3 @@
-export type Permission =
-  | 'use_quick_peek'
-  | 'view_step'
-  | 'view_pdf'
-  | 'view_dxf'
-  | 'view_dashboard'
-  | 'manage_users'
-  | 'download_files'
-  | 'view_doc'
-  | 'view_xls'
-  | 'view_ppt'
-  | 'view_md'
-  | 'view_txt'
-  | 'view_html';
-
-export type User = {
-  id: number;
-  username: string;
-  role: 'admin' | 'user';
-  permissions: Permission[];
-  is_active: boolean;
-  last_login_at?: string | null;
-};
-
 export type Format = 'step' | 'pdf' | 'dxf' | 'doc' | 'xls' | 'ppt' | 'md' | 'txt' | 'html';
 
 export type FileItem = {
@@ -54,12 +30,4 @@ export type FolderBrowseResponse = {
   parent?: string | null;
   roots: string[];
   items: FolderItem[];
-};
-
-export type FolderPreset = {
-  id: number;
-  name: string;
-  path: string;
-  created_at: string;
-  updated_at: string;
 };
