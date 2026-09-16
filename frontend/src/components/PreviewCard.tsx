@@ -1,7 +1,7 @@
 import { AlertCircle, Check, Copy, Expand } from 'lucide-react';
 import { apiUrl } from '../api';
 import type { FileItem, Format, SearchResult } from '../types';
-import { StepThumbnail } from './viewers/StepViewer';
+import { StepCardViewer } from './viewers/StepViewer';
 
 function sizeLabel(bytes: number) {
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -12,10 +12,14 @@ function sizeLabel(bytes: number) {
 export default function PreviewCard({
   result,
   format,
+  cardHeight,
+  pauseStepPreview,
   onOpen
 }: {
   result: SearchResult;
   format: Format;
+  cardHeight: number;
+  pauseStepPreview: boolean;
   onOpen: (file: FileItem) => void;
 }) {
   const file = result.files[0];
@@ -23,7 +27,7 @@ export default function PreviewCard({
   const multiple = result.status === 'multiple_matches';
 
   return (
-    <article className={`preview-card ${missing ? 'missing' : ''}`}>
+    <article className={`preview-card ${missing ? 'missing' : ''}`} style={{ height: cardHeight }}>
       <div className="card-heading">
         <div className="card-code">
           <span className={`status-dot ${missing ? 'missing' : 'found'}`} />
@@ -38,7 +42,7 @@ export default function PreviewCard({
       <div className="preview-frame">
         {file ? (
           file.preview_kind === 'step' ? (
-            <StepThumbnail url={apiUrl(file.preview_url)} label={file.filename} />
+            <StepCardViewer url={apiUrl(file.preview_url)} label={file.filename} suspended={pauseStepPreview} />
           ) : file.preview_kind === 'pdf' ? (
             <iframe
               className="preview-pdf-card"
@@ -62,7 +66,7 @@ export default function PreviewCard({
 
         {file && (
           <button className="preview-open" onClick={() => onOpen(file)} title="Open large preview" type="button">
-            <Expand size={16} />
+            <Expand size={15} />
             Open
           </button>
         )}

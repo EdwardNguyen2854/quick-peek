@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FileSearch, FolderOpen, Grid2X2, Grid3X3, Loader2, RotateCcw, Search } from 'lucide-react';
+import { FileSearch, FolderOpen, Loader2, RotateCcw, Search } from 'lucide-react';
 import { normalizeCodes, searchFiles } from '../api';
 import type { FileItem, Format, SearchResult } from '../types';
 import PreviewCard from '../components/PreviewCard';
@@ -18,6 +18,14 @@ const formats: { id: Format; label: string; exts: string }[] = [
   { id: 'html', label: 'HTML', exts: 'HTML' }
 ];
 
+const DEFAULT_CARD_WIDTH = 520;
+const DEFAULT_CARD_HEIGHT = 430;
+
+function savedSize(key: string, fallback: number, min: number, max: number) {
+  const value = Number(localStorage.getItem(key));
+  return Number.isFinite(value) && value >= min && value <= max ? value : fallback;
+}
+
 export default function QuickPeekPage() {
   const [format, setFormat] = useState<Format>('step');
   const [codesText, setCodesText] = useState('');
@@ -27,10 +35,8 @@ export default function QuickPeekPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<{ code: string; file: FileItem } | null>(null);
-  const [columns, setColumns] = useState(() => {
-    const saved = Number(localStorage.getItem('quickpeek_columns'));
-    return [2, 3, 4].includes(saved) ? saved : 3;
-  });
+  const [cardWidth, setCardWidth] = useState(() => savedSize('quickpeek_card_width', DEFAULT_CARD_WIDTH, 360, 800));
+  const [cardHeight, setCardHeight] = useState(() => savedSize('quickpeek_card_height', DEFAULT_CARD_HEIGHT, 320, 720));
 
   const codes = useMemo(() => normalizeCodes(codesText), [codesText]);
   const filesFound = results.reduce((sum, result) => sum + result.matches_count, 0);
@@ -49,6 +55,21 @@ export default function QuickPeekPage() {
     setWorkingFolder(clean);
     if (clean) localStorage.setItem('quickpeek_working_folder', clean);
     else localStorage.removeItem('quickpeek_working_folder');
+  }
+
+  function updateCardWidth(value: number) {
+    setCardWidth(value);
+    localStorage.setItem('quickpeek_card_width', String(value));
+  }
+
+  function updateCardHeight(value: number) {
+    setCardHeight(value);
+    localStorage.setItem('quickpeek_card_height', String(value));
+  }
+
+  function resetCardSize() {
+    updateCardWidth(DEFAULT_CARD_WIDTH);
+    updateCardHeight(DEFAULT_CARD_HEIGHT);
   }
 
   async function runSearch() {
@@ -142,7 +163,7 @@ export default function QuickPeekPage() {
               </div>
               <div>
                 <span>Preview</span>
-                <strong>{format === 'step' ? 'Live 3D' : 'Automatic'}</strong>
+                <strong>{format === 'step' ? 'Interactive 3D' : 'Automatic'}</strong>
               </div>
             </div>
 
@@ -169,32 +190,55 @@ export default function QuickPeekPage() {
             <p className="results-subtitle">
               {results.length
                 ? `${foundCodes} of ${results.length} codes matched · ${filesFound} file${filesFound === 1 ? '' : 's'} found`
-                : 'Your previews will appear here. STEP models load automatically in the grid.'}
+                : 'Your previews will appear here. STEP cards support rotate, zoom, and pan directly.'}
             </p>
           </div>
 
           {results.length > 0 && (
-            <div className="view-toggle" aria-label="Grid density">
-              <button className={columns === 2 ? 'active' : ''} onClick={() => { setColumns(2); localStorage.setItem('quickpeek_columns', '2'); }} title="Comfortable grid">
-                <Grid2X2 size={16} />
-              </button>
-              <button className={columns === 3 ? 'active' : ''} onClick={() => { setColumns(3); localStorage.setItem('quickpeek_columns', '3'); }} title="Standard grid">
-                <Grid3X3 size={16} />
-              </button>
-              <button className={columns === 4 ? 'active compact-grid' : 'compact-grid'} onClick={() => { setColumns(4); localStorage.setItem('quickpeek_columns', '4'); }} title="Compact grid">
-                <span>4</span>
+            <div className="card-size-toolbar" aria-label="Preview card size">
+              <label className="size-control">
+                <span>Width</span>
+                <input
+                  type="range"
+                  min="360"
+                  max="800"
+                  step="20"
+                  value={cardWidth}
+                  onChange={(event) => updateCardWidth(Number(event.target.value))}
+                />
+                <output>{cardWidth}px</output>
+              </label>
+              <label className="size-control">
+                <span>Height</span>
+                <input
+                  type="range"
+                  min="320"
+                  max="720"
+                  step="20"
+                  value={cardHeight}
+                  onChange={(event) => updateCardHeight(Number(event.target.value))}
+                />
+                <output>{cardHeight}px</output>
+              </label>
+              <button className="size-reset" type="button" onClick={resetCardSize} title="Reset card size">
+                Reset
               </button>
             </div>
           )}
         </div>
 
         {results.length > 0 ? (
-          <div className="results-grid" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+          <div
+            className="results-grid"
+            style={{ gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${cardWidth}px), ${cardWidth}px))` }}
+          >
             {results.map((result) => (
               <PreviewCard
                 key={result.code}
                 result={result}
                 format={format}
+                cardHeight={cardHeight}
+                pauseStepPreview={selected !== null}
                 onOpen={(file) => setSelected({ code: result.code, file })}
               />
             ))}
