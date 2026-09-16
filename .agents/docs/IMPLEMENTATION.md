@@ -24,7 +24,6 @@ SUPPORTED_FORMATS = {
     "step": [".stp", ".step"],
     "pdf": [".pdf"],
     "dxf": [".dxf"],
-    "obj": [".obj"],
     "doc": [".doc", ".docx"],      # NEW
     "xls": [".xls", ".xlsx"],     # NEW
     "ppt": [".ppt", ".pptx"],     # NEW
@@ -40,7 +39,7 @@ MAX_CONVERT_SIZE_MB = int(_get("QUICKPEEK_MAX_CONVERT_SIZE_MB", "100"))
 # 3. Add per-format permissions
 DEFAULT_USER_PERMISSIONS = [
     "use_quick_peek",
-    "view_step", "view_pdf", "view_dxf", "view_obj",
+    "view_step", "view_pdf", "view_dxf",
     "view_doc", "view_xls", "view_ppt",  # NEW
     "view_md", "view_txt", "view_html",  # NEW
 ]
@@ -339,8 +338,6 @@ def ensure_preview(file_row: dict, file_format: str) -> Dict[str, str | bool | N
     if file_format == "dxf":
         out = PREVIEW_DIR / f"{key}.svg"
         # ... existing DXF logic ...
-    if file_format == "obj":
-        return {"kind": "obj", "ready": True, "message": None, "cache_file": None}
     if file_format == "step":
         # ... existing STEP logic ...
 
@@ -393,7 +390,6 @@ FORMAT_PERMISSION = {
     "step": "view_step",
     "pdf": "view_pdf",
     "dxf": "view_dxf",
-    "obj": "view_obj",
     "doc": "view_doc",    # NEW
     "xls": "view_xls",    # NEW
     "ppt": "view_ppt",    # NEW
@@ -414,8 +410,6 @@ def preview_file(file_id: int, format: str, user=Depends(current_user)):
     # Direct serve formats
     if p["kind"] == "pdf":
         return FileResponse(Path(item["full_path"]), media_type="application/pdf")
-    if p["kind"] == "obj":
-        return FileResponse(Path(item["full_path"]), media_type="model/obj")
     if p["kind"] == "txt":
         return FileResponse(Path(item["full_path"]), media_type="text/plain")
     if p["kind"] == "html":
@@ -456,14 +450,14 @@ def preview_file(file_id: int, format: str, user=Depends(current_user)):
 
 ```python
 class SearchRequest(BaseModel):
-    format: Literal["step", "pdf", "dxf", "obj", "doc", "xls", "ppt", "md", "txt", "html"]
+    format: Literal["step", "pdf", "dxf", "doc", "xls", "ppt", "md", "txt", "html"]
     codes: List[str]
     folder_path: Optional[str] = None
 
 
 class OpenLogRequest(BaseModel):
     file_id: int
-    format: Literal["step", "pdf", "dxf", "obj", "doc", "xls", "ppt", "md", "txt", "html"]
+    format: Literal["step", "pdf", "dxf", "doc", "xls", "ppt", "md", "txt", "html"]
 ```
 
 **Checklist**:
@@ -508,7 +502,6 @@ export type Permission =
   | 'view_step'
   | 'view_pdf'
   | 'view_dxf'
-  | 'view_obj'
   | 'view_doc'      // NEW
   | 'view_xls'      // NEW
   | 'view_ppt'      // NEW
@@ -519,11 +512,11 @@ export type Permission =
   | 'manage_users'
   | 'download_files';
 
-export type Format = 'step' | 'pdf' | 'dxf' | 'obj' | 'doc' | 'xls' | 'ppt' | 'md' | 'txt' | 'html';  // Updated
+export type Format = 'step' | 'pdf' | 'dxf' | 'doc' | 'xls' | 'ppt' | 'md' | 'txt' | 'html';  // Updated
 
 export type FileItem = {
   // ... existing fields ...
-  preview_kind: 'pdf' | 'svg' | 'glb' | 'step' | 'obj' | 'unknown' | 'html' | 'txt';  // Added 'html', 'txt'
+  preview_kind: 'pdf' | 'svg' | 'glb' | 'step' | 'unknown' | 'html' | 'txt';  // Added 'html', 'txt'
 };
 ```
 
@@ -545,7 +538,6 @@ const formats: { id: Format; label: string; exts: string; permission: string }[]
   { id: 'step', label: 'STEP', exts: '.stp .step', permission: 'view_step' },
   { id: 'pdf', label: 'PDF', exts: '.pdf', permission: 'view_pdf' },
   { id: 'dxf', label: 'DXF', exts: '.dxf', permission: 'view_dxf' },
-  { id: 'obj', label: 'OBJ', exts: '.obj', permission: 'view_obj' },
   { id: 'doc', label: 'Word', exts: '.doc .docx', permission: 'view_doc' },    // NEW
   { id: 'xls', label: 'Excel', exts: '.xls .xlsx', permission: 'view_xls' },  // NEW
   { id: 'ppt', label: 'PowerPoint', exts: '.ppt .pptx', permission: 'view_ppt' },  // NEW
@@ -595,7 +587,6 @@ export default function ViewerModal({ code, format, file, onClose }: { code: str
           {format === 'step' && file.preview_kind !== 'glb' && <PanZoomImage url={previewUrl} label="STEP placeholder preview" />}
           {format === 'pdf' && <iframe className="pdf-frame" src={`${previewUrl}#toolbar=1&navpanes=0&scrollbar=1&page=1&view=FitH`} title={file.filename} />}
           {format === 'dxf' && <DxfVectorViewer url={previewUrl} label="DXF preview" />}
-          {format === 'obj' && <ObjViewer url={previewUrl} />}
           {(format === 'md' || format === 'html') && (
             <iframe className="pdf-frame" src={previewUrl} title={file.filename} />
           )}
@@ -633,7 +624,6 @@ export default function ViewerModal({ code, format, file, onClose }: { code: str
 // - 'pdf' → iframe (existing)
 // - 'svg' → img (existing)
 // - 'glb' → 3D icon (existing)
-// - 'obj' → 3D icon (existing)
 // - 'html' → img or iframe (NEW - may need adjustment)
 // - 'txt' → img (existing, will show broken icon — acceptable)
 // - 'step' → placeholder icon (existing)
