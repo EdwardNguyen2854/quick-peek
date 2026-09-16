@@ -35,8 +35,8 @@ export default function QuickPeekPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<{ code: string; file: FileItem } | null>(null);
-  const [cardWidth, setCardWidth] = useState(() => savedSize('quickpeek_card_width', DEFAULT_CARD_WIDTH, 300, 800));
-  const [cardHeight, setCardHeight] = useState(() => savedSize('quickpeek_card_height', DEFAULT_CARD_HEIGHT, 280, 720));
+  const [cardWidth, setCardWidth] = useState(() => savedSize('quickpeek_card_width', DEFAULT_CARD_WIDTH, 360, 800));
+  const [cardHeight, setCardHeight] = useState(() => savedSize('quickpeek_card_height', DEFAULT_CARD_HEIGHT, 320, 720));
 
   const codes = useMemo(() => normalizeCodes(codesText), [codesText]);
   const filesFound = results.reduce((sum, result) => sum + result.matches_count, 0);
@@ -200,7 +200,7 @@ export default function QuickPeekPage() {
                 <span>Width</span>
                 <input
                   type="range"
-                  min="300"
+                  min="360"
                   max="800"
                   step="20"
                   value={cardWidth}
@@ -212,7 +212,7 @@ export default function QuickPeekPage() {
                 <span>Height</span>
                 <input
                   type="range"
-                  min="280"
+                  min="320"
                   max="720"
                   step="20"
                   value={cardHeight}
@@ -238,6 +238,7 @@ export default function QuickPeekPage() {
                 result={result}
                 format={format}
                 cardHeight={cardHeight}
+                pauseStepPreview={selected !== null}
                 onOpen={(file) => setSelected({ code: result.code, file })}
               />
             ))}
