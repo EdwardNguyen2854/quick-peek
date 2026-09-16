@@ -53,7 +53,13 @@ def search(payload: SearchRequest):
             raise HTTPException(status_code=400, detail=f"Cannot index working folder: {exc}")
         folder_path = str(folder.resolve())
 
-    if not folder_path:\n        try:\n            reindex_files()\n        except OSError:\n            pass\n\n    indexed_results = search_index(payload.format, cleaned, root_path=folder_path)
+    if not folder_path:
+        try:
+            reindex_files()
+        except OSError:
+            pass
+
+    indexed_results = search_index(payload.format, cleaned, root_path=folder_path)
     results = []
     files_found = 0
     for item in indexed_results:
