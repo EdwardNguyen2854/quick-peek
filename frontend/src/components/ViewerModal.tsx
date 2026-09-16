@@ -5,7 +5,6 @@ import type { FileItem, Format } from '../types';
 import StepViewer from './viewers/StepViewer';
 import PanZoomImage from './viewers/PanZoomImage';
 import DxfVectorViewer from './viewers/DxfVectorViewer';
-import ObjViewer from './viewers/ObjViewer';
 import DocViewer from './viewers/DocViewer';
 import MarkdownViewer from './viewers/MarkdownViewer';
 import TextViewer from './viewers/TextViewer';
@@ -39,7 +38,6 @@ export default function ViewerModal({ code, format, file, onClose }: { code: str
           {format === 'step' && file.preview_kind !== 'glb' && <PanZoomImage url={previewUrl} label="STEP placeholder preview" />}
           {format === 'pdf' && <iframe className="pdf-frame" src={pdfViewUrl} title={file.filename} />}
           {format === 'dxf' && <DxfVectorViewer url={previewUrl} label="DXF preview" />}
-          {format === 'obj' && <ObjViewer url={previewUrl} />}
           {(format === 'doc' || format === 'xls' || format === 'ppt') && <DocViewer url={previewUrl} />}
           {format === 'md' && <MarkdownViewer url={previewUrl} />}
           {format === 'txt' && <TextViewer url={previewUrl} />}
