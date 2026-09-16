@@ -56,7 +56,6 @@ SUPPORTED_FORMATS = {
     "step": [".stp", ".step"],
     "pdf": [".pdf"],
     "dxf": [".dxf"],
-    "obj": [".obj"],
     "doc": [".doc", ".docx"],
     "xls": [".xls", ".xlsx"],
     "ppt": [".ppt", ".pptx"],
@@ -65,13 +64,12 @@ SUPPORTED_FORMATS = {
     "html": [".html", ".htm"],
 }
 
-DEFAULT_USER_PERMISSIONS = ["use_quick_peek", "view_step", "view_pdf", "view_dxf", "view_obj", "view_doc", "view_xls", "view_ppt", "view_md", "view_txt", "view_html"]
+DEFAULT_USER_PERMISSIONS = ["use_quick_peek", "view_step", "view_pdf", "view_dxf", "view_doc", "view_xls", "view_ppt", "view_md", "view_txt", "view_html"]
 ADMIN_PERMISSIONS = [
     "use_quick_peek",
     "view_step",
     "view_pdf",
     "view_dxf",
-    "view_obj",
     "view_doc",
     "view_xls",
     "view_ppt",
