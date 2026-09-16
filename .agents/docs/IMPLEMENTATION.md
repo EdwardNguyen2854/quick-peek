@@ -34,8 +34,12 @@ The Vite build outputs to `backend/app/static`. The PyInstaller spec bundles tha
 
 ## STEP preview grid
 
-STEP result cards render automatically. `StepThumbnail` shares the same cached tessellated mesh as the full `StepViewer`, then generates a static image with a temporary WebGL renderer. This avoids reparsing a model when it is opened and avoids keeping one permanent WebGL context per result card.
+STEP result cards render automatically as interactive Three.js viewports. `StepCardViewer` shares the cached tessellated mesh with the full `StepViewer` and uses `IntersectionObserver` to keep WebGL contexts only for cards in or near the viewport. Cards support direct rotate, wheel zoom, and pan; off-screen cards release their renderer while retaining a lightweight snapshot and cached mesh.
 
 ## UI layout
 
 The frontend uses a single professional workspace: sticky product header, compact format selector, two-column search form, responsive results grid, and a focused full-screen preview modal. Keep new controls visually restrained and avoid adding secondary navigation or dashboard surfaces.
+
+## Card sizing
+
+The Results toolbar exposes persisted card width and height sliders. Width controls the responsive grid track size; height controls the full card height. STEP viewports use ResizeObserver so their renderer and camera update when card dimensions change.
