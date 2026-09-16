@@ -36,6 +36,14 @@ export default function QuickPeekPage() {
   const filesFound = results.reduce((sum, result) => sum + result.matches_count, 0);
   const foundCodes = results.filter((result) => result.status !== 'not_found').length;
 
+  function selectFormat(nextFormat: Format) {
+    if (nextFormat === format) return;
+    setFormat(nextFormat);
+    setResults([]);
+    setSelected(null);
+    setError('');
+  }
+
   function applyWorkingFolder(path: string) {
     const clean = path.trim();
     setWorkingFolder(clean);
@@ -86,7 +94,7 @@ export default function QuickPeekPage() {
               <button
                 key={item.id}
                 className={`format-tab ${format === item.id ? 'active' : ''}`}
-                onClick={() => setFormat(item.id)}
+                onClick={() => selectFormat(item.id)}
                 type="button"
                 title={item.exts}
               >
