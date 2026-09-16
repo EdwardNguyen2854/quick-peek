@@ -1,4 +1,5 @@
-import { AlertCircle, Check, CircleHelp, Copy, Expand } from 'lucide-react';
+import { useState } from 'react';
+import { AlertCircle, Check, CircleHelp, Copy, Expand, X } from 'lucide-react';
 import { apiUrl } from '../api';
 import type { FileItem, Format, SearchResult } from '../types';
 import { StepCardViewer } from './viewers/StepViewer';
@@ -28,7 +29,9 @@ export default function PreviewCard({
   pauseStepPreview: boolean;
   onOpen: (file: FileItem) => void;
 }) {
+  const [showAlternatives, setShowAlternatives] = useState(false);
   const file = result.recommended_file || result.files[0];
+  const alternatives = result.files.slice(1);
   const missing = result.status === 'not_found';
   const suggested = result.status === 'suggested';
   const multiple = result.status === 'multiple_matches';
@@ -84,6 +87,43 @@ export default function PreviewCard({
             Open
           </button>
         )}
+
+        {showAlternatives && alternatives.length > 0 && (
+          <div className="alternatives-popover">
+            <div className="alternatives-header">
+              <div>
+                <strong>Alternatives</strong>
+                <span>{result.matches_count} strong matches total</span>
+              </div>
+              <button type="button" onClick={() => setShowAlternatives(false)} aria-label="Close alternatives">
+                <X size={14} />
+              </button>
+            </div>
+            <div className="alternatives-list">
+              {alternatives.map((alternative) => (
+                <button
+                  className="alternative-item"
+                  key={alternative.file_id}
+                  type="button"
+                  onClick={() => onOpen(alternative)}
+                >
+                  <span>
+                    <strong>{alternative.filename}</strong>
+                    <em>
+                      {alternative.match_reason || alternative.format.toUpperCase()}
+                      {alternative.revision ? ` · Rev ${alternative.revision}` : ''}
+                      {alternative.folder_class && alternative.folder_class !== 'normal' ? ` · ${alternative.folder_class}` : ''}
+                    </em>
+                  </span>
+                  <Expand size={13} />
+                </button>
+              ))}
+            </div>
+            {result.matches_count > result.files.length && (
+              <small>Showing the top {result.files.length} ranked matches.</small>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="card-footer">
@@ -99,9 +139,15 @@ export default function PreviewCard({
               </div>
             </div>
             {multiple && result.matches_count > 1 && (
-              <span className="match-badge" title="Alternative strong matches">
+              <button
+                className="match-badge"
+                title="Show alternative strong matches"
+                type="button"
+                onClick={() => setShowAlternatives((value) => !value)}
+                disabled={alternatives.length === 0}
+              >
                 <Copy size={12} /> +{result.matches_count - 1}
-              </span>
+              </button>
             )}
           </>
         ) : suggested ? (
