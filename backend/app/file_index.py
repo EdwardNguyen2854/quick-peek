@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+import threading
+import time
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Callable, Dict, Iterable, List, Optional
 
 from .config import FILE_ROOTS, SUPPORTED_FORMATS
 from .db import get_conn, get_index_state, set_index_state, utc_now
@@ -14,6 +16,56 @@ from .search_engine import (
     parse_filename,
     ranking_key,
 )
+
+
+class IndexJob:
+    _instance: Optional["IndexJob"] = None
+    _lock = threading.Lock()
+
+    def __init__(self) -> None:
+        self.running = False
+        self.thread: Optional[threading.Thread] = None
+        self.started_at: Optional[float] = None
+        self.phase: str = "idle"
+        self.current_root: str = ""
+        self.files_indexed: int = 0
+        self.roots_count: int = 0
+        self._stop_requested = False
+
+    @classmethod
+    def get_instance(cls) -> "IndexJob":
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = cls()
+            return cls._instance
+
+    @classmethod
+    def reset_instance(cls) -> None:
+        with cls._lock:
+            if cls._instance is not None:
+                cls._instance.running = False
+                cls._instance = None
+
+    def is_idle(self) -> bool:
+        return not self.running
+
+    def stop(self) -> None:
+        self._stop_requested = True
+
+    def reset(self) -> None:
+        self.running = False
+        self.thread = None
+        self.started_at = None
+        self.phase = "idle"
+        self.current_root = ""
+        self.files_indexed = 0
+        self.roots_count = 0
+        self._stop_requested = False
+
+    def elapsed_seconds(self) -> float:
+        if self.started_at is None:
+            return 0.0
+        return time.time() - self.started_at
 
 ALL_EXTENSIONS = {ext for exts in SUPPORTED_FORMATS.values() for ext in exts}
 FORMAT_BY_EXTENSION = {
@@ -142,10 +194,15 @@ def _upsert_file(conn, path: Path, root: Path, now: str) -> bool:
     return True
 
 
-def _index_roots(roots: list[Path], prune: bool = True) -> Dict[str, int]:
+def _index_roots(
+    roots: list[Path],
+    prune: bool = True,
+    job: Optional[IndexJob] = None,
+) -> Dict[str, int]:
     now = utc_now()
     set_index_state(
         status="indexing",
+        phase="scanning",
         last_started_at=now,
         roots_count=len(roots),
         last_error="",
@@ -155,13 +212,33 @@ def _index_roots(roots: list[Path], prune: bool = True) -> Dict[str, int]:
     seen_paths: set[str] = set()
     resolved_roots = [str(root.resolve()) for root in roots if root.exists()]
 
+    progress_phase = "scanning"
+    progress_root = ""
+    progress_indexed = 0
+
+    def _update_progress(phase: str, current_root: str, files_idx: int) -> None:
+        nonlocal progress_phase, progress_root, progress_indexed
+        progress_phase = phase
+        progress_root = current_root
+        progress_indexed = files_idx
+        if job:
+            job.phase = phase
+            job.current_root = current_root
+            job.files_indexed = files_idx
+
     try:
         with get_conn() as conn:
             for path, root in _iter_files(roots):
+                if job and job._stop_requested:
+                    raise InterruptedError("Index job was stopped")
+                root_str = str(root.resolve())
+                _update_progress("scanning", root_str, indexed)
                 if _upsert_file(conn, path, root, now):
                     resolved = str(path.resolve())
                     seen_paths.add(resolved)
                     indexed += 1
+
+            _update_progress("pruning", "", indexed)
 
             if prune and resolved_roots:
                 rows = conn.execute("SELECT id, full_path FROM files").fetchall()
@@ -176,9 +253,16 @@ def _index_roots(roots: list[Path], prune: bool = True) -> Dict[str, int]:
 
             total = conn.execute("SELECT COUNT(*) AS count FROM files").fetchone()["count"]
 
+        set_index_state(
+            phase=progress_phase,
+            current_root=progress_root,
+            files_indexed=progress_indexed,
+        )
+
         completed = utc_now()
         set_index_state(
             status="ready",
+            phase="ready",
             last_completed_at=completed,
             files_count=int(total),
             roots_count=len(roots),
@@ -186,7 +270,7 @@ def _index_roots(roots: list[Path], prune: bool = True) -> Dict[str, int]:
         )
         return {"indexed": indexed, "files_count": int(total), "roots": len(roots)}
     except Exception as exc:
-        set_index_state(status="error", last_error=str(exc))
+        set_index_state(status="error", phase="error", last_error=str(exc))
         raise
 
 
@@ -203,6 +287,46 @@ def index_folder(folder_path: str | Path) -> Dict[str, int]:
     return _index_roots([root], prune=True)
 
 
+def start_background_index(roots: list[Path] = None, folder_path: Optional[str] = None) -> IndexJob:
+    job = IndexJob.get_instance()
+    if job.running:
+        return job
+
+    job.running = True
+    job.started_at = time.time()
+    job.phase = "starting"
+    job.current_root = ""
+    job.files_indexed = 0
+
+    def run():
+        try:
+            if folder_path:
+                root = Path(folder_path).expanduser()
+                if not root.is_absolute():
+                    root = root.resolve()
+                roots_list = [root] if root.exists() and root.is_dir() else []
+            else:
+                roots_list = roots or FILE_ROOTS
+
+            job.roots_count = len(roots_list)
+
+            _index_roots(roots_list, prune=True, job=job)
+        except InterruptedError:
+            job.reset()
+            set_index_state(status="idle", phase="idle")
+        except Exception as exc:
+            job.running = False
+            job.phase = "error"
+            set_index_state(status="error", phase="error", last_error=str(exc))
+        finally:
+            job.running = False
+            job.phase = "ready"
+
+    job.thread = threading.Thread(target=run, daemon=True)
+    job.thread.start()
+    return job
+
+
 def refresh_index(folder_path: Optional[str] = None) -> Dict[str, int]:
     if folder_path:
         return index_folder(folder_path)
@@ -210,7 +334,19 @@ def refresh_index(folder_path: Optional[str] = None) -> Dict[str, int]:
 
 
 def index_status() -> dict:
-    return get_index_state()
+    state = get_index_state()
+    job = IndexJob.get_instance()
+    if job.running:
+        state["phase"] = job.phase
+        state["current_root"] = job.current_root
+        state["files_indexed"] = job.files_indexed
+        state["elapsed_seconds"] = round(job.elapsed_seconds(), 1)
+    else:
+        state["phase"] = state.get("phase", "idle")
+        state["current_root"] = state.get("current_root", "")
+        state["files_indexed"] = state.get("files_indexed", 0)
+        state["elapsed_seconds"] = 0.0
+    return state
 
 
 def _scope_clause(root_path: Optional[str]) -> tuple[str, list[str]]:

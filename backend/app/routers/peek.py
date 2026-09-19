@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from ..db import get_conn, row_to_dict
-from ..file_index import index_status, refresh_index, search_index
+from ..file_index import index_status, search_index, start_background_index
 from ..preview import ensure_preview
 from ..schemas import IndexRefreshRequest, SearchRequest
 from ..search_engine import normalize_code
@@ -129,14 +129,13 @@ def get_search_index_status():
 def refresh_search_index(payload: IndexRefreshRequest):
     folder_path = _validated_folder(payload.folder_path)
     try:
-        result = refresh_index(folder_path)
+        start_background_index(folder_path=folder_path)
     except PermissionError:
         raise HTTPException(status_code=403, detail="No permission to read the selected folder")
     except OSError as exc:
         raise HTTPException(status_code=400, detail=f"Cannot refresh index: {exc}")
 
     return {
-        **result,
         "folder_path": folder_path,
         "index": index_status(),
     }

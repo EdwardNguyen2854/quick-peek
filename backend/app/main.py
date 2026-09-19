@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .db import init_db
-from .file_index import reindex_files
+from .file_index import start_background_index
 from .routers import folders, peek
 
 
@@ -21,13 +21,9 @@ def _static_path() -> Path:
 
 def create_app() -> FastAPI:
     init_db()
-    try:
-        reindex_files()
-    except Exception:
-        # The app should still start if a configured drive is offline.
-        pass
+    start_background_index()
 
-    app = FastAPI(title="Quick Peek API", version="0.8.0")
+    app = FastAPI(title="Quick Peek API", version="0.9.0")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],

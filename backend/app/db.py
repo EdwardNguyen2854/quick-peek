@@ -56,15 +56,18 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS index_state (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
                 status TEXT NOT NULL DEFAULT 'idle',
+                phase TEXT NOT NULL DEFAULT 'idle',
                 last_started_at TEXT,
                 last_completed_at TEXT,
                 files_count INTEGER NOT NULL DEFAULT 0,
                 roots_count INTEGER NOT NULL DEFAULT 0,
+                current_root TEXT NOT NULL DEFAULT '',
+                files_indexed INTEGER NOT NULL DEFAULT 0,
                 last_error TEXT
             );
 
-            INSERT OR IGNORE INTO index_state (id, status, files_count, roots_count)
-            VALUES (1, 'idle', 0, 0);
+            INSERT OR IGNORE INTO index_state (id, status, phase, files_count, roots_count)
+            VALUES (1, 'idle', 'idle', 0, 0);
             """
         )
 
@@ -87,6 +90,16 @@ def init_db() -> None:
             },
         )
 
+        _ensure_columns(
+            conn,
+            "index_state",
+            {
+                "phase": "TEXT NOT NULL DEFAULT 'idle'",
+                "current_root": "TEXT NOT NULL DEFAULT ''",
+                "files_indexed": "INTEGER NOT NULL DEFAULT 0",
+            },
+        )
+
         conn.executescript(
             """
             CREATE INDEX IF NOT EXISTS idx_files_extension ON files(extension);
@@ -104,10 +117,13 @@ def init_db() -> None:
 def set_index_state(
     *,
     status: Optional[str] = None,
+    phase: Optional[str] = None,
     last_started_at: Optional[str] = None,
     last_completed_at: Optional[str] = None,
     files_count: Optional[int] = None,
     roots_count: Optional[int] = None,
+    current_root: Optional[str] = None,
+    files_indexed: Optional[int] = None,
     last_error: Optional[str] = None,
 ) -> None:
     fields: list[str] = []
@@ -115,10 +131,13 @@ def set_index_state(
 
     for key, value in (
         ("status", status),
+        ("phase", phase),
         ("last_started_at", last_started_at),
         ("last_completed_at", last_completed_at),
         ("files_count", files_count),
         ("roots_count", roots_count),
+        ("current_root", current_root),
+        ("files_indexed", files_indexed),
         ("last_error", last_error),
     ):
         if value is not None:
@@ -140,10 +159,13 @@ def get_index_state() -> dict[str, Any]:
 
     item = row_to_dict(row) or {
         "status": "idle",
+        "phase": "idle",
         "last_started_at": None,
         "last_completed_at": None,
         "files_count": 0,
         "roots_count": 0,
+        "current_root": "",
+        "files_indexed": 0,
         "last_error": None,
     }
     item["files_count"] = int(count)
