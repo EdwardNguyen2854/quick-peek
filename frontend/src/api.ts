@@ -76,7 +76,7 @@ export async function getIndexStatus() {
 }
 
 export async function refreshIndex(folderPath?: string) {
-  return api<{ indexed: number; files_count: number; roots: number; folder_path?: string | null; index: IndexState }>('/api/index/refresh', {
+  return api<{ folder_path?: string | null; index: IndexState }>('/api/index/refresh', {
     method: 'POST',
     body: JSON.stringify({ folder_path: folderPath || null })
   });

@@ -43,13 +43,28 @@ export type SearchResult = {
   suggestions: SearchSuggestion[];
 };
 
-export type IndexState = {
+export type IndexRootState = {
+  id?: number;
+  root_path: string;
   status: 'idle' | 'indexing' | 'ready' | 'error' | string;
   last_started_at?: string | null;
   last_completed_at?: string | null;
   files_count: number;
-  roots_count: number;
   last_error?: string | null;
+};
+
+export type IndexState = {
+  status: 'idle' | 'indexing' | 'ready' | 'error' | string;
+  phase?: string | null;
+  last_started_at?: string | null;
+  last_completed_at?: string | null;
+  files_count: number;
+  roots_count: number;
+  current_root?: string | null;
+  files_indexed?: number;
+  elapsed_seconds?: number;
+  last_error?: string | null;
+  roots?: IndexRootState[];
 };
 
 export type SearchResponse = {
