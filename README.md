@@ -2,7 +2,7 @@
 
 A local engineering file lookup and preview tool.
 
-Quick Peek v0.8 focuses on **reliable search**: it normalizes part numbers, ranks strong matches deterministically, understands explicit revisions and common folder states, and keeps fuzzy results clearly separated as suggestions.
+Quick Peek v0.9 adds **background indexing with live progress**, per-root index health, legacy Office document preview via LibreOffice, and a bounded preview cache.
 
 ## Core workflow
 
@@ -17,7 +17,7 @@ There is no login, user/account management, admin panel, dashboard, roadmap, rel
 
 ## Reliable search
 
-Normal Search does **not** rescan the filesystem. Configured roots are indexed at startup, and the search panel provides explicit index status and Refresh controls.
+Normal Search does **not** rescan the filesystem. Configured roots are indexed in the background at startup; the search panel shows per-root index health (ready / indexing / error), live progress (phase, current folder, file count), and a manual Refresh action. Folder selection through the picker refreshes that folder explicitly.
 
 Strong candidates are ranked in this order:
 
@@ -131,8 +131,10 @@ Copy `backend/.env.example` to `backend/.env` if needed.
 |---|---|---|
 | `QUICKPEEK_FILE_ROOTS` | `./data/files` | Folders indexed at startup |
 | `QUICKPEEK_DB_PATH` | `./data/quickpeek.sqlite3` | Local SQLite search index |
-| `QUICKPEEK_LIBREOFFICE_CMD` | auto/empty | Optional Office conversion command |
+| `QUICKPEEK_LIBREOFFICE_CMD` | auto/empty | Optional LibreOffice command path for legacy `.doc`/`.xls`/`.ppt` preview |
 | `QUICKPEEK_MAX_CONVERT_SIZE_MB` | `100` | Maximum document conversion size |
+| `QUICKPEEK_PREVIEW_CACHE_MAX_SIZE_MB` | `500` | Maximum preview cache size in MB |
+| `QUICKPEEK_PREVIEW_CACHE_MAX_AGE_DAYS` | `7` | Preview cache expiry in days |
 
 ## STEP preview
 

@@ -1,3 +1,27 @@
+# Quick Peek v0.9.0 — Background Indexing and Preview Cache
+
+## Highlights
+
+- background startup indexing with live progress (phase, current folder, file count)
+- per-root index health (ready / indexing / error) visible in the search panel
+- legacy Office preview for `.doc`, `.xls`, `.ppt` files via `QUICKPEEK_LIBREOFFICE_CMD`
+- bounded preview cache controlled by `QUICKPEEK_PREVIEW_CACHE_MAX_SIZE_MB` and `QUICKPEEK_PREVIEW_CACHE_MAX_AGE_DAYS`
+- search remains non-blocking; startup no longer waits for indexing to complete
+
+## Index lifecycle
+
+Configured roots are indexed in a background thread at startup. The UI exposes per-root health and live progress without blocking the search panel. Manual Refresh re-indexes all roots or a selected folder.
+
+## Compatibility
+
+All v0.8 ranking contracts, deterministic match ordering, fuzzy suggestions, paste handling, and SQLite migration behaviour are preserved. Existing `files` rows are retained and enriched on the next refresh.
+
+## Migration
+
+No migration steps are required. Existing SQLite databases open as-is; existing rows are enriched on the next index refresh. New `QUICKPEEK_PREVIEW_CACHE_MAX_SIZE_MB` and `QUICKPEEK_PREVIEW_CACHE_MAX_AGE_DAYS` env vars default to `500` MB and `7` days if not set.
+
+---
+
 # Quick Peek v0.8.0 — Reliable Search
 
 ## Highlights
