@@ -225,7 +225,7 @@ def office_to_html(input_path: Path, output_path: Path) -> bool:
         if pptx_to_html(input_path, output_path):
             return True
 
-    if ext in LEGACY_FORMATS and LIBREOFFICE_CMD:
+    if LIBREOFFICE_CMD:
         return libreoffice_to_html(input_path, output_path)
 
     return False

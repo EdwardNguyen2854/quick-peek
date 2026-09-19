@@ -6,6 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
+from ..cache_eviction import mark_preview_accessed
 from ..db import get_conn, row_to_dict
 from ..file_index import index_status, search_index, start_background_index
 from ..preview import ensure_preview
@@ -190,11 +191,13 @@ def preview_file(file_id: int, format: str):
         if preview.get("cache_file"):
             cache_path = Path(str(preview["cache_file"]))
             if cache_path.exists():
+                mark_preview_accessed(cache_path)
                 return FileResponse(cache_path, media_type="text/html; charset=utf-8")
         return FileResponse(Path(item["full_path"]), media_type="text/html; charset=utf-8")
     if preview.get("cache_file"):
         cache_path = Path(str(preview["cache_file"]))
         if cache_path.exists() and cache_path.suffix == ".svg":
+            mark_preview_accessed(cache_path)
             return FileResponse(cache_path, media_type="image/svg+xml")
 
     raise HTTPException(status_code=404, detail="Preview is not available")

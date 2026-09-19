@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import threading
 from pathlib import Path
 from typing import Dict
 
@@ -15,6 +16,26 @@ def file_key(path: Path) -> str:
     st = path.stat()
     src = f"{path.resolve()}|{st.st_mtime}|{st.st_size}".encode("utf-8", errors="ignore")
     return hashlib.sha256(src).hexdigest()[:24]
+
+
+_legacy_conversions_inflight: set[str] = set()
+
+
+def schedule_legacy_conversion(path: Path, out: Path) -> None:
+    """Convert a legacy Office file off the request path, one attempt per file."""
+    cache_key = str(out)
+    if cache_key in _legacy_conversions_inflight:
+        return
+    _legacy_conversions_inflight.add(cache_key)
+
+    def _run() -> None:
+        try:
+            if office_to_html(path, out):
+                evict_preview_cache()
+        finally:
+            _legacy_conversions_inflight.discard(cache_key)
+
+    threading.Thread(target=_run, daemon=True).start()
 
 
 def ensure_preview(file_row: dict, file_format: str) -> Dict[str, str | bool | None]:
@@ -46,15 +67,23 @@ def ensure_preview(file_row: dict, file_format: str) -> Dict[str, str | bool | N
         out = PREVIEW_DIR / f"{key}.html"
         if out.exists():
             return {"kind": "html", "ready": True, "message": None, "cache_file": str(out)}
-        try:
-            if office_to_html(path, out):
-                evict_preview_cache()
-                return {"kind": "html", "ready": True, "message": None, "cache_file": str(out)}
-            if not LIBREOFFICE_CMD:
-                return {"kind": file_format, "ready": False, "message": "Preview unavailable. Set QUICKPEEK_LIBREOFFICE_CMD to enable legacy .doc/.xls/.ppt preview.", "cache_file": None}
-            return {"kind": file_format, "ready": False, "message": "Office document preview conversion failed. Ensure python-docx, openpyxl, and python-pptx are installed.", "cache_file": None}
-        except Exception as exc:
-            return {"kind": file_format, "ready": False, "message": f"Office conversion failed: {exc}", "cache_file": None}
+
+        ext = path.suffix.lower()
+        if ext in {".docx", ".xlsx", ".pptx"}:
+            try:
+                if office_to_html(path, out):
+                    evict_preview_cache()
+                    return {"kind": "html", "ready": True, "message": None, "cache_file": str(out)}
+                if not LIBREOFFICE_CMD:
+                    return {"kind": file_format, "ready": False, "message": "Preview unavailable. Set QUICKPEEK_LIBREOFFICE_CMD to enable Office preview.", "cache_file": None}
+                return {"kind": file_format, "ready": False, "message": "Office document preview conversion failed.", "cache_file": None}
+            except Exception as exc:
+                return {"kind": file_format, "ready": False, "message": f"Office conversion failed: {exc}", "cache_file": None}
+
+        if not LIBREOFFICE_CMD:
+            return {"kind": file_format, "ready": False, "message": "Preview unavailable. Set QUICKPEEK_LIBREOFFICE_CMD to enable legacy .doc/.xls/.ppt preview.", "cache_file": None}
+        schedule_legacy_conversion(path, out)
+        return {"kind": file_format, "ready": False, "message": "Preview pending. Legacy Office conversion is running in the background.", "cache_file": None}
     if file_format == "md":
         # Check file size before conversion
         try:
