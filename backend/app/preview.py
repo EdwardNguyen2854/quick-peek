@@ -4,7 +4,7 @@ import hashlib
 from pathlib import Path
 from typing import Dict
 
-from .config import MAX_CONVERT_SIZE_MB, PREVIEW_DIR
+from .config import LIBREOFFICE_CMD, MAX_CONVERT_SIZE_MB, PREVIEW_DIR
 from .converters.markdown_to_html import markdown_to_html
 from .converters.office_to_html import office_to_html
 from .dxf_preview import dxf_to_svg
@@ -34,7 +34,6 @@ def ensure_preview(file_row: dict, file_format: str) -> Dict[str, str | bool | N
         # STEP is tessellated in the browser with OpenCascade WebAssembly.
         return {"kind": "step", "ready": True, "message": None, "cache_file": None}
     if file_format in {"doc", "xls", "ppt"}:
-        # Check file size before conversion
         try:
             size_mb = path.stat().st_size / (1024 * 1024)
             if size_mb > MAX_CONVERT_SIZE_MB:
@@ -48,6 +47,8 @@ def ensure_preview(file_row: dict, file_format: str) -> Dict[str, str | bool | N
         try:
             if office_to_html(path, out):
                 return {"kind": "html", "ready": True, "message": None, "cache_file": str(out)}
+            if not LIBREOFFICE_CMD:
+                return {"kind": file_format, "ready": False, "message": "Preview unavailable. Set QUICKPEEK_LIBREOFFICE_CMD to enable legacy .doc/.xls/.ppt preview.", "cache_file": None}
             return {"kind": file_format, "ready": False, "message": "Office document preview conversion failed. Ensure python-docx, openpyxl, and python-pptx are installed.", "cache_file": None}
         except Exception as exc:
             return {"kind": file_format, "ready": False, "message": f"Office conversion failed: {exc}", "cache_file": None}
