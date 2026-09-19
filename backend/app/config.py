@@ -40,6 +40,9 @@ for item in raw_roots.split(";") if ";" in raw_roots else raw_roots.split(","):
 LIBREOFFICE_CMD = _get("QUICKPEEK_LIBREOFFICE_CMD", "").strip()
 MAX_CONVERT_SIZE_MB = int(_get("QUICKPEEK_MAX_CONVERT_SIZE_MB", "100"))
 
+PREVIEW_CACHE_MAX_SIZE_MB = int(_get("QUICKPEEK_PREVIEW_CACHE_MAX_SIZE_MB", "500"))
+PREVIEW_CACHE_MAX_AGE_DAYS = int(_get("QUICKPEEK_PREVIEW_CACHE_MAX_AGE_DAYS", "7"))
+
 SUPPORTED_FORMATS = {
     "step": [".stp", ".step"],
     "pdf": [".pdf"],

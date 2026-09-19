@@ -4,6 +4,7 @@ import hashlib
 from pathlib import Path
 from typing import Dict
 
+from .cache_eviction import evict_preview_cache, mark_preview_accessed
 from .config import LIBREOFFICE_CMD, MAX_CONVERT_SIZE_MB, PREVIEW_DIR
 from .converters.markdown_to_html import markdown_to_html
 from .converters.office_to_html import office_to_html
@@ -26,6 +27,7 @@ def ensure_preview(file_row: dict, file_format: str) -> Dict[str, str | bool | N
         if not out.exists():
             try:
                 out.write_text(dxf_to_svg(path, path.name), encoding="utf-8")
+                evict_preview_cache()
             except Exception as exc:
                 out.write_text(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400"><rect width="600" height="400" fill="white"/><text x="30" y="60" font-family="Arial" font-size="18">DXF preview failed</text><text x="30" y="95" font-family="Arial" font-size="13">{str(exc)}</text></svg>', encoding="utf-8")
                 return {"kind": "svg", "ready": False, "message": f"DXF preview failed: {exc}", "cache_file": str(out)}
@@ -46,6 +48,7 @@ def ensure_preview(file_row: dict, file_format: str) -> Dict[str, str | bool | N
             return {"kind": "html", "ready": True, "message": None, "cache_file": str(out)}
         try:
             if office_to_html(path, out):
+                evict_preview_cache()
                 return {"kind": "html", "ready": True, "message": None, "cache_file": str(out)}
             if not LIBREOFFICE_CMD:
                 return {"kind": file_format, "ready": False, "message": "Preview unavailable. Set QUICKPEEK_LIBREOFFICE_CMD to enable legacy .doc/.xls/.ppt preview.", "cache_file": None}
@@ -65,6 +68,7 @@ def ensure_preview(file_row: dict, file_format: str) -> Dict[str, str | bool | N
             return {"kind": "html", "ready": True, "message": None, "cache_file": str(out)}
         try:
             if markdown_to_html(path, out):
+                evict_preview_cache()
                 return {"kind": "html", "ready": True, "message": None, "cache_file": str(out)}
             return {"kind": "md", "ready": False, "message": "Markdown to HTML conversion failed.", "cache_file": None}
         except Exception as exc:
