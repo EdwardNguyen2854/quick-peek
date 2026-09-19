@@ -29,15 +29,69 @@ function savedSize(key: string, fallback: number, min: number, max: number) {
   return Number.isFinite(value) && value >= min && value <= max ? value : fallback;
 }
 
+const INDEX_POLL_INTERVAL = 1500;
+const ACTIVE_PHASES = new Set(['starting', 'scanning', 'pruning']);
+
+const PHASE_LABELS: Record<string, string> = {
+  starting: 'Starting',
+  scanning: 'Scanning files',
+  pruning: 'Pruning removed files',
+  ready: 'Ready',
+  error: 'Error',
+  idle: 'Idle'
+};
+
+function isIndexActive(index: IndexState | null) {
+  if (!index) return false;
+  return index.status === 'indexing' || ACTIVE_PHASES.has(String(index.phase || ''));
+}
+
+function phaseLabel(phase?: string | null) {
+  const key = String(phase || 'idle');
+  return PHASE_LABELS[key] || key;
+}
+
+function rootStatusLabel(status: string) {
+  switch (status) {
+    case 'indexing': return 'Indexing';
+    case 'ready': return 'Ready';
+    case 'error': return 'Error';
+    case 'idle': return 'Idle';
+    default: return status;
+  }
+}
+
+function shortPath(path: string) {
+  const trimmed = path.replace(/[\\/]+$/, '');
+  const parts = trimmed.split(/[\\/]/);
+  return parts[parts.length - 1] || path;
+}
+
+function timestampLabel(value?: string | null) {
+  if (!value) return 'never';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
+
+function formatDuration(seconds: number) {
+  const total = Math.max(0, Math.round(seconds));
+  if (total < 60) return `${total}s`;
+  const minutes = Math.floor(total / 60);
+  return `${minutes}m ${String(total % 60).padStart(2, '0')}s`;
+}
+
 function indexLabel(index: IndexState | null) {
   if (!index) return 'Index status unavailable';
-  if (index.status === 'indexing') return `Indexing · ${index.files_count.toLocaleString()} files available`;
+  if (isIndexActive(index)) {
+    const scanned = (index.files_indexed ?? 0).toLocaleString();
+    const root = index.current_root ? ` · ${shortPath(index.current_root)}` : '';
+    const elapsed = index.elapsed_seconds ? ` · ${formatDuration(index.elapsed_seconds)}` : '';
+    return `${phaseLabel(index.phase)} · ${scanned} files scanned${root}${elapsed}`;
+  }
   if (index.status === 'error') return `Index error · ${index.last_error || 'refresh failed'}`;
   if (!index.last_completed_at) return `${index.files_count.toLocaleString()} indexed files`;
 
-  const updated = new Date(index.last_completed_at);
-  const time = Number.isNaN(updated.getTime()) ? index.last_completed_at : updated.toLocaleString();
-  return `${index.files_count.toLocaleString()} indexed files · updated ${time}`;
+  return `${index.files_count.toLocaleString()} indexed files · updated ${timestampLabel(index.last_completed_at)}`;
 }
 
 export default function QuickPeekPage() {
@@ -47,7 +101,8 @@ export default function QuickPeekPage() {
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [busy, setBusy] = useState(false);
-  const [indexBusy, setIndexBusy] = useState(false);
+  const [refreshPending, setRefreshPending] = useState(false);
+  const [rootsOpen, setRootsOpen] = useState(false);
   const [index, setIndex] = useState<IndexState | null>(null);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<ResultFilter>('all');
@@ -58,6 +113,12 @@ export default function QuickPeekPage() {
   const codes = useMemo(() => normalizeCodes(codesText), [codesText]);
   const filesFound = results.reduce((sum, result) => sum + result.matches_count, 0);
   const foundCodes = results.filter((result) => result.status === 'found' || result.status === 'multiple_matches').length;
+
+  const indexActive = isIndexActive(index);
+  const indexBusy = refreshPending || indexActive;
+  const roots = index?.roots ?? [];
+  const rootsUnhealthy = roots.some((root) => root.status === 'error');
+  const showRoots = roots.length > 0 && (rootsOpen || indexActive || rootsUnhealthy);
 
   const filterCounts = useMemo(() => ({
     all: results.length,
@@ -83,6 +144,22 @@ export default function QuickPeekPage() {
       .catch(() => setIndex(null));
   }, []);
 
+  useEffect(() => {
+    if (!indexActive) return;
+    let cancelled = false;
+    const timer = window.setInterval(() => {
+      getIndexStatus()
+        .then((next) => {
+          if (!cancelled) setIndex(next);
+        })
+        .catch(() => {});
+    }, INDEX_POLL_INTERVAL);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [indexActive]);
+
   function selectFormat(nextFormat: Format) {
     if (nextFormat === format) return;
     setFormat(nextFormat);
@@ -100,7 +177,7 @@ export default function QuickPeekPage() {
   }
 
   async function refreshSearchIndex(path = workingFolder.trim()) {
-    setIndexBusy(true);
+    setRefreshPending(true);
     setError('');
     try {
       const response = await refreshIndex(path || undefined);
@@ -111,7 +188,7 @@ export default function QuickPeekPage() {
         setIndex(await getIndexStatus());
       } catch {}
     } finally {
-      setIndexBusy(false);
+      setRefreshPending(false);
     }
   }
 
@@ -228,18 +305,61 @@ export default function QuickPeekPage() {
               <span className="field-hint">{workingFolder.trim() ? 'Results are scoped to this indexed folder.' : 'Using configured default roots.'}</span>
             </div>
 
-            <div className="index-panel">
-              <div className="index-state">
-                <Database size={15} />
-                <div>
-                  <strong>Search index</strong>
-                  <span>{indexLabel(index)}</span>
+            <div className="index-block">
+              <div className="index-panel">
+                <div className="index-state">
+                  <Database size={15} />
+                  <div>
+                    <strong>Search index</strong>
+                    <span title={index?.current_root || undefined}>{indexLabel(index)}</span>
+                  </div>
+                </div>
+                <div className="index-panel-actions">
+                  {roots.length > 0 && (
+                    <button
+                      className="index-roots-toggle"
+                      onClick={() => setRootsOpen((open) => !open)}
+                      type="button"
+                      aria-expanded={showRoots}
+                    >
+                      {showRoots ? 'Hide roots' : `${roots.length} root${roots.length === 1 ? '' : 's'}`}
+                    </button>
+                  )}
+                  <button className="button subtle index-refresh" onClick={() => refreshSearchIndex()} disabled={indexBusy} type="button">
+                    {indexBusy ? <Loader2 className="spin" size={15} /> : <RefreshCw size={15} />}
+                    {indexActive ? 'Indexing…' : refreshPending ? 'Starting…' : 'Refresh'}
+                  </button>
                 </div>
               </div>
-              <button className="button subtle index-refresh" onClick={() => refreshSearchIndex()} disabled={indexBusy} type="button">
-                {indexBusy ? <Loader2 className="spin" size={15} /> : <RefreshCw size={15} />}
-                {indexBusy ? 'Refreshing…' : 'Refresh'}
-              </button>
+
+              {indexActive && (
+                <div className="index-progress" role="status" aria-live="polite">
+                  <span className="index-progress-phase">{phaseLabel(index?.phase)}</span>
+                  <span>{index?.current_root ? shortPath(index.current_root) : 'Preparing'}</span>
+                  <span>{(index?.files_indexed ?? 0).toLocaleString()} files scanned</span>
+                  <span>{formatDuration(index?.elapsed_seconds ?? 0)} elapsed</span>
+                </div>
+              )}
+
+              {showRoots && (
+                <ul className="index-roots">
+                  {roots.map((root) => (
+                    <li key={root.root_path} className={`index-root ${root.status}`}>
+                      <span className="index-root-dot" aria-hidden="true" />
+                      <div className="index-root-main">
+                        <strong title={root.root_path}>{shortPath(root.root_path)}</strong>
+                        <span title={root.root_path}>{root.root_path}</span>
+                      </div>
+                      <div className="index-root-meta">
+                        <span>{rootStatusLabel(root.status)}</span>
+                        <span>{root.files_count.toLocaleString()} files</span>
+                        <span>updated {timestampLabel(root.last_completed_at)}</span>
+                      </div>
+                      {root.last_error && <p className="index-root-error">{root.last_error}</p>}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div className="search-summary">
