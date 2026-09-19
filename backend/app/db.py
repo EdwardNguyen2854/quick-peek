@@ -75,10 +75,21 @@ def init_db() -> None:
                 files_count INTEGER NOT NULL DEFAULT 0,
                 last_error TEXT
             );
-
-            INSERT OR IGNORE INTO index_state (id, status, phase, files_count, roots_count)
-            VALUES (1, 'idle', 'idle', 0, 0);
             """
+        )
+
+        _ensure_columns(
+            conn,
+            "index_state",
+            {
+                "phase": "TEXT NOT NULL DEFAULT 'idle'",
+                "current_root": "TEXT NOT NULL DEFAULT ''",
+                "files_indexed": "INTEGER NOT NULL DEFAULT 0",
+            },
+        )
+
+        conn.execute(
+            "INSERT OR IGNORE INTO index_state (id, status, phase, files_count, roots_count) VALUES (1, 'idle', 'idle', 0, 0)"
         )
 
         _ensure_columns(
@@ -97,16 +108,6 @@ def init_db() -> None:
                 "folder_class": "TEXT NOT NULL DEFAULT 'normal'",
                 "folder_priority": "INTEGER NOT NULL DEFAULT 250",
                 "root_path": "TEXT NOT NULL DEFAULT ''",
-            },
-        )
-
-        _ensure_columns(
-            conn,
-            "index_state",
-            {
-                "phase": "TEXT NOT NULL DEFAULT 'idle'",
-                "current_root": "TEXT NOT NULL DEFAULT ''",
-                "files_indexed": "INTEGER NOT NULL DEFAULT 0",
             },
         )
 
