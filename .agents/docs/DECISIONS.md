@@ -10,7 +10,7 @@ Login, accounts, permissions, LDAP, API keys, admin controls, and dashboard anal
 
 ## Index search, do not scan on Search
 
-Configured roots are indexed at startup. A selected working folder is indexed when explicitly selected/refreshed. Pressing Search queries SQLite only, so search latency is separated from filesystem/network-share latency.
+Configured roots are indexed in the background at startup without blocking the search panel. A selected working folder is indexed when explicitly selected/refreshed. Pressing Search queries SQLite only, so search latency is separated from filesystem/network-share latency. Per-root index health (ready / indexing / error) is tracked and surfaced in the UI.
 
 ## Deterministic search over opaque AI ranking
 

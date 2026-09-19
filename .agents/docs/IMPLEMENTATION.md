@@ -15,9 +15,11 @@ Search ranking belongs on the backend. The frontend must display backend explana
 
 ## Index lifecycle
 
-Configured roots are indexed on startup. Refreshing an unchanged file reuses its existing parsed metadata when size and mtime are unchanged. Normal search never calls the filesystem indexer.
+Configured roots are indexed in a background thread at startup. `IndexJob` tracks live progress: phase (starting / scanning / pruning / ready), current root, file count, and elapsed time. Normal search never calls the filesystem indexer.
 
-The UI exposes index health and a manual Refresh action. Selecting a folder through the folder picker refreshes that folder explicitly.
+Per-root state is tracked independently: each root reports `ready`, `indexing`, or `error` with a file count and optional error message. The UI exposes this as index health.
+
+Refreshing an unchanged file reuses its existing parsed metadata when size and mtime are unchanged. Selecting a folder through the folder picker refreshes that folder explicitly.
 
 ## Match model
 
