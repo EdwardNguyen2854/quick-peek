@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+import subprocess
 from pathlib import Path
 
 try:
@@ -20,6 +21,8 @@ try:
     PPTX_AVAILABLE = True
 except ImportError:
     PPTX_AVAILABLE = False
+
+LEGACY_FORMATS = {".doc", ".xls", ".ppt"}
 
 
 DOCX_STYLE = """
@@ -163,10 +166,36 @@ def pptx_to_html(input_path: Path, output_path: Path) -> bool:
         return False
 
 
+def libreoffice_to_html(input_path: Path, output_path: Path) -> bool:
+    """Convert an Office document to HTML using LibreOffice."""
+    from ..config import LIBREOFFICE_CMD
+
+    if not LIBREOFFICE_CMD:
+        return False
+
+    try:
+        result = subprocess.run(
+            [LIBREOFFICE_CMD, "--headless", "--convert-to", "html", "--outdir", str(output_path.parent), str(input_path)],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if result.returncode != 0:
+            return False
+
+        converted = output_path.parent / f"{input_path.stem}.html"
+        if converted.exists() and converted.stat().st_size > 0:
+            converted.rename(output_path)
+            return True
+        return False
+    except Exception:
+        return False
+
+
 def office_to_html(input_path: Path, output_path: Path) -> bool:
     """
-    Convert an Office document (docx, xlsx, pptx) to HTML using pure Python.
-    Falls back to trying each converter based on extension.
+    Convert an Office document (docx, xlsx, pptx, doc, xls, ppt) to HTML.
+    Falls back to LibreOffice for legacy formats or when pure-Python conversion fails.
 
     Args:
         input_path: Path to the input Office document
@@ -175,9 +204,8 @@ def office_to_html(input_path: Path, output_path: Path) -> bool:
     Returns:
         True if HTML was created successfully, False otherwise
     """
-    from ..config import MAX_CONVERT_SIZE_MB
+    from ..config import LIBREOFFICE_CMD, MAX_CONVERT_SIZE_MB
 
-    # Check file size
     try:
         size_mb = input_path.stat().st_size / (1024 * 1024)
         if size_mb > MAX_CONVERT_SIZE_MB:
@@ -188,10 +216,16 @@ def office_to_html(input_path: Path, output_path: Path) -> bool:
     ext = input_path.suffix.lower()
 
     if ext in (".docx", ".doc"):
-        return docx_to_html(input_path, output_path)
+        if docx_to_html(input_path, output_path):
+            return True
     elif ext in (".xlsx", ".xls"):
-        return xlsx_to_html(input_path, output_path)
+        if xlsx_to_html(input_path, output_path):
+            return True
     elif ext in (".pptx", ".ppt"):
-        return pptx_to_html(input_path, output_path)
+        if pptx_to_html(input_path, output_path):
+            return True
+
+    if ext in LEGACY_FORMATS and LIBREOFFICE_CMD:
+        return libreoffice_to_html(input_path, output_path)
 
     return False
