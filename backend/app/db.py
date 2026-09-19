@@ -232,3 +232,8 @@ def get_root_states() -> list[dict[str, Any]]:
     with get_conn() as conn:
         rows = conn.execute("SELECT * FROM index_root_state").fetchall()
     return [row_to_dict(r) for r in rows]
+
+
+def delete_root_state(root_path: str) -> None:
+    with get_conn() as conn:
+        conn.execute("DELETE FROM index_root_state WHERE root_path = ?", (root_path,))

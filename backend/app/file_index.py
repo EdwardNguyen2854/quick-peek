@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional
 
 from .config import FILE_ROOTS, SUPPORTED_FORMATS
-from .db import get_conn, get_index_state, get_root_states, set_index_state, set_root_state, utc_now
+from .db import delete_root_state, get_conn, get_index_state, get_root_states, set_index_state, set_root_state, utc_now
 from .search_engine import (
     explain_candidate,
     fuzzy_suggestions,
@@ -113,6 +113,27 @@ def _iter_files(roots: Iterable[Path]):
                 path = Path(dirpath) / name
                 if path.suffix.lower() in ALL_EXTENSIONS:
                     yield path, root
+
+
+def _iter_files_with_errors(roots: Iterable[Path]):
+    for root in roots:
+        if not root.exists() or not root.is_dir():
+            continue
+        try:
+            for dirpath, dirnames, filenames in os.walk(root):
+                dirnames[:] = [
+                    directory
+                    for directory in dirnames
+                    if directory.lower() not in EXCLUDED_DIRS and not directory.startswith(".")
+                ]
+                for name in filenames:
+                    if _is_temp_file(name):
+                        continue
+                    path = Path(dirpath) / name
+                    if path.suffix.lower() in ALL_EXTENSIONS:
+                        yield path, root, None
+        except PermissionError as exc:
+            yield None, root, f"Permission denied: {exc}"
 
 
 def _upsert_file(conn, path: Path, root: Path, now: str) -> bool:
@@ -237,9 +258,14 @@ def _index_roots(
 
     try:
         with get_conn() as conn:
-            for path, root in _iter_files(roots):
+            for path, root, error in _iter_files_with_errors(roots):
                 if job and job._stop_requested:
                     raise InterruptedError("Index job was stopped")
+                if error is not None:
+                    root_str = str(root.resolve())
+                    if root_str not in root_errors:
+                        root_errors[root_str] = error
+                    continue
                 root_str = str(root.resolve())
                 _update_progress("scanning", root_str, indexed)
                 try:
@@ -289,6 +315,12 @@ def _index_roots(
                     last_completed_at=completed,
                     files_count=root_file_counts.get(root_str, 0),
                 )
+
+        if prune and resolved_roots:
+            all_root_states = get_root_states()
+            for row in all_root_states:
+                if row["root_path"] not in resolved_roots:
+                    delete_root_state(row["root_path"])
 
         overall_error = ""
         if root_errors:
@@ -345,15 +377,18 @@ def start_background_index(roots: list[Path] = None, folder_path: Optional[str] 
             job.roots_count = len(roots_list)
 
             _index_roots(roots_list, prune=True, job=job)
+            job.phase = "ready"
         except InterruptedError:
             job.reset()
             set_index_state(status="idle", phase="idle")
+            return
         except Exception as exc:
-            job.running = False
             job.phase = "error"
             set_index_state(status="error", phase="error", last_error=str(exc))
         finally:
             job.running = False
+
+        if job.phase != "error":
             job.phase = "ready"
 
     job.thread = threading.Thread(target=run, daemon=True)
