@@ -66,6 +66,16 @@ def init_db() -> None:
                 last_error TEXT
             );
 
+            CREATE TABLE IF NOT EXISTS index_root_state (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                root_path TEXT NOT NULL UNIQUE,
+                status TEXT NOT NULL DEFAULT 'idle',
+                last_started_at TEXT,
+                last_completed_at TEXT,
+                files_count INTEGER NOT NULL DEFAULT 0,
+                last_error TEXT
+            );
+
             INSERT OR IGNORE INTO index_state (id, status, phase, files_count, roots_count)
             VALUES (1, 'idle', 'idle', 0, 0);
             """
@@ -156,6 +166,7 @@ def get_index_state() -> dict[str, Any]:
     with get_conn() as conn:
         row = conn.execute("SELECT * FROM index_state WHERE id = 1").fetchone()
         count = conn.execute("SELECT COUNT(*) AS count FROM files").fetchone()["count"]
+        root_rows = conn.execute("SELECT * FROM index_root_state").fetchall()
 
     item = row_to_dict(row) or {
         "status": "idle",
@@ -169,4 +180,54 @@ def get_index_state() -> dict[str, Any]:
         "last_error": None,
     }
     item["files_count"] = int(count)
+    item["roots"] = [row_to_dict(r) for r in root_rows]
     return item
+
+
+def set_root_state(
+    *,
+    root_path: str,
+    status: Optional[str] = None,
+    last_started_at: Optional[str] = None,
+    last_completed_at: Optional[str] = None,
+    files_count: Optional[int] = None,
+    last_error: Optional[str] = None,
+) -> None:
+    fields: list[str] = []
+    values: list[Any] = []
+
+    for key, value in (
+        ("status", status),
+        ("last_started_at", last_started_at),
+        ("last_completed_at", last_completed_at),
+        ("files_count", files_count),
+        ("last_error", last_error),
+    ):
+        if value is not None:
+            fields.append(f"{key} = ?")
+            values.append(value)
+
+    if not fields:
+        return
+
+    values.append(root_path)
+    with get_conn() as conn:
+        existing = conn.execute(
+            "SELECT id FROM index_root_state WHERE root_path = ?", (root_path,)
+        ).fetchone()
+        if existing:
+            conn.execute(
+                f"UPDATE index_root_state SET {', '.join(fields)} WHERE root_path = ?",
+                tuple(values),
+            )
+        else:
+            conn.execute(
+                f"INSERT INTO index_root_state (root_path, {', '.join(f.split('=')[0].strip() for f in fields)}) VALUES (?, {', '.join(['?'] * len(fields))})",
+                (root_path, *values[:-1]),
+            )
+
+
+def get_root_states() -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        rows = conn.execute("SELECT * FROM index_root_state").fetchall()
+    return [row_to_dict(r) for r in rows]

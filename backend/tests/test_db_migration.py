@@ -53,6 +53,57 @@ class DatabaseMigrationTests(unittest.TestCase):
             finally:
                 db.DB_PATH = original_path
 
+    def test_old_database_gets_index_root_state_table(self):
+        original_path = db.DB_PATH
+        with tempfile.TemporaryDirectory() as temp_dir:
+            test_path = Path(temp_dir) / "quickpeek.sqlite3"
+            db.DB_PATH = test_path
+            try:
+                conn = sqlite3.connect(test_path)
+                conn.executescript(
+                    """
+                    CREATE TABLE files (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        filename TEXT NOT NULL,
+                        full_path TEXT NOT NULL UNIQUE,
+                        extension TEXT NOT NULL,
+                        size_bytes INTEGER NOT NULL,
+                        modified_at REAL NOT NULL,
+                        indexed_at TEXT NOT NULL
+                    );
+                    CREATE TABLE index_state (
+                        id INTEGER PRIMARY KEY CHECK (id = 1),
+                        status TEXT NOT NULL DEFAULT 'idle',
+                        phase TEXT NOT NULL DEFAULT 'idle',
+                        last_started_at TEXT,
+                        last_completed_at TEXT,
+                        files_count INTEGER NOT NULL DEFAULT 0,
+                        roots_count INTEGER NOT NULL DEFAULT 0,
+                        current_root TEXT NOT NULL DEFAULT '',
+                        files_indexed INTEGER NOT NULL DEFAULT 0,
+                        last_error TEXT
+                    );
+                    INSERT INTO index_state (id, status, phase, files_count, roots_count)
+                    VALUES (1, 'idle', 'idle', 0, 0);
+                    """
+                )
+                conn.commit()
+                conn.close()
+
+                db.init_db()
+
+                conn = sqlite3.connect(test_path)
+                tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+                root_state_columns = {row[1] for row in conn.execute("PRAGMA table_info(index_root_state)").fetchall()}
+                conn.close()
+
+                self.assertIn("index_root_state", tables)
+                self.assertIn("root_path", root_state_columns)
+                self.assertIn("status", root_state_columns)
+                self.assertIn("last_error", root_state_columns)
+            finally:
+                db.DB_PATH = original_path
+
 
 if __name__ == "__main__":
     unittest.main()
