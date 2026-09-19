@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional
 
 from .config import FILE_ROOTS, SUPPORTED_FORMATS
-from .db import get_conn, get_index_state, set_index_state, utc_now
+from .db import get_conn, get_index_state, get_root_states, set_index_state, set_root_state, utc_now
 from .search_engine import (
     explain_candidate,
     fuzzy_suggestions,
@@ -211,6 +211,8 @@ def _index_roots(
     indexed = 0
     seen_paths: set[str] = set()
     resolved_roots = [str(root.resolve()) for root in roots if root.exists()]
+    root_file_counts: Dict[str, int] = {}
+    root_errors: Dict[str, str] = {}
 
     progress_phase = "scanning"
     progress_root = ""
@@ -226,6 +228,13 @@ def _index_roots(
             job.current_root = current_root
             job.files_indexed = files_idx
 
+    for root in roots:
+        root_str = str(root.resolve())
+        if root.exists() and root.is_dir():
+            set_root_state(root_path=root_str, status="indexing", last_started_at=now, last_error="")
+        else:
+            root_errors[root_str] = "Root path is offline or inaccessible"
+
     try:
         with get_conn() as conn:
             for path, root in _iter_files(roots):
@@ -233,10 +242,14 @@ def _index_roots(
                     raise InterruptedError("Index job was stopped")
                 root_str = str(root.resolve())
                 _update_progress("scanning", root_str, indexed)
-                if _upsert_file(conn, path, root, now):
-                    resolved = str(path.resolve())
-                    seen_paths.add(resolved)
-                    indexed += 1
+                try:
+                    if _upsert_file(conn, path, root, now):
+                        resolved = str(path.resolve())
+                        seen_paths.add(resolved)
+                        indexed += 1
+                        root_file_counts[root_str] = root_file_counts.get(root_str, 0) + 1
+                except Exception as exc:
+                    root_errors[root_str] = str(exc)
 
             _update_progress("pruning", "", indexed)
 
@@ -260,13 +273,34 @@ def _index_roots(
         )
 
         completed = utc_now()
+        for root in roots:
+            root_str = str(root.resolve())
+            if root_str in root_errors:
+                set_root_state(
+                    root_path=root_str,
+                    status="error",
+                    last_completed_at=completed,
+                    last_error=root_errors[root_str],
+                )
+            else:
+                set_root_state(
+                    root_path=root_str,
+                    status="ready",
+                    last_completed_at=completed,
+                    files_count=root_file_counts.get(root_str, 0),
+                )
+
+        overall_error = ""
+        if root_errors:
+            overall_error = "; ".join(f"{r}: {e}" for r, e in root_errors.items())
+
         set_index_state(
             status="ready",
             phase="ready",
             last_completed_at=completed,
             files_count=int(total),
             roots_count=len(roots),
-            last_error="",
+            last_error=overall_error,
         )
         return {"indexed": indexed, "files_count": int(total), "roots": len(roots)}
     except Exception as exc:
@@ -346,6 +380,8 @@ def index_status() -> dict:
         state["current_root"] = state.get("current_root", "")
         state["files_indexed"] = state.get("files_indexed", 0)
         state["elapsed_seconds"] = 0.0
+    if "roots" not in state:
+        state["roots"] = get_root_states()
     return state
 
 
