@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from .cache_eviction import evict_preview_cache
 from .db import init_db
 from .file_index import start_background_index
 from .routers import folders, peek
@@ -21,6 +22,7 @@ def _static_path() -> Path:
 
 def create_app() -> FastAPI:
     init_db()
+    evict_preview_cache()
     start_background_index()
 
     app = FastAPI(title="Quick Peek API", version="0.9.0")
